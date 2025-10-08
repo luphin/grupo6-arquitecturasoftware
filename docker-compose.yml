@@ -1,0 +1,73 @@
+services:
+  # Servicio de moderación de chat
+  moderation-chat-service:
+    build:
+      context: moderation-chat-service
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - ./moderation-chat-service:/code
+      - ./logs/service:/logs
+    depends_on:
+      - moderation-chat-mongodb
+    environment:
+      - MONGODB_URL=mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@moderation-chat-mongodb:27017/${MONGODB_DATABASE}
+      - LOG_LEVEL=${LOG_LEVEL}
+    env_file:
+      - .env
+
+  moderation-chat-mongodb:
+    image: mongo:5.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - moderation_chat_mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGODB_DATABASE}
+    env_file:
+      - .env
+    logging:
+      driver: none
+
+  # Loki (backend logs)
+  loki:
+    image: grafana/loki:3.2.1
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+  # Promtail (recolecta logs)
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    volumes:
+      - ./promtail/config.yml:/etc/promtail/config.yml
+      - ./logs:/var/log/app
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+  # Grafana (visualizador)
+  grafana:
+    image: grafana/grafana:12.0.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    env_file:
+      - .env
+    depends_on:
+      - loki
+
+volumes:
+  moderation_chat_mongodb_data:
+
+networks:
+  default:
+    name: moderation-network
