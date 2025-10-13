@@ -1,73 +1,86 @@
 services:
-  # Servicio de moderación de chat
-  moderation-chat-service:
+  # ===== SERVICIO DE MODERACIÓN =====
+  moderation-service:
     build:
-      context: moderation-chat-service
+      context: ./moderation-chat-service
       dockerfile: Dockerfile
+    container_name: moderation-service
     ports:
-      - "8080:80"
-    volumes:
-      - ./moderation-chat-service:/code
-      - ./logs/service:/logs
-    depends_on:
-      - moderation-chat-mongodb
+      - "8000:8000"
     environment:
-      - MONGODB_URL=mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@moderation-chat-mongodb:27017/${MONGODB_DATABASE}
-      - LOG_LEVEL=${LOG_LEVEL}
+      - ENVIRONMENT=development
     env_file:
       - .env
+    volumes:
+      - ./moderation-chat-service/app:/app/app
+      - ./moderation-chat-service/scripts:/app/scripts
+      - ./logs/service:/app/logs
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+    networks:
+      - moderation-network
+    restart: unless-stopped
 
-  moderation-chat-mongodb:
-    image: mongo:5.0
+  # ===== MONGODB =====
+  mongodb:
+    image: mongo:7.0
+    container_name: moderation-mongodb
     ports:
       - "27017:27017"
     volumes:
-      - moderation_chat_mongodb_data:/data/db
+      - mongodb_data:/data/db
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
-      - MONGO_INITDB_DATABASE=${MONGODB_DATABASE}
-    env_file:
-      - .env
-    logging:
-      driver: none
+      - MONGO_INITDB_DATABASE=moderation_db
+    networks:
+      - moderation-network
+    restart: unless-stopped
 
-  # Loki (backend logs)
-  loki:
-    image: grafana/loki:3.2.1
-    container_name: loki
+  # ===== REDIS (Cache) =====
+  redis:
+    image: redis:7-alpine
+    container_name: moderation-redis
     ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
-
-  # Promtail (recolecta logs)
-  promtail:
-    image: grafana/promtail:2.9.0
-    container_name: promtail
+      - "6379:6379"
+    command: redis-server --save "" --appendonly no  # ← SIN persistencia
     volumes:
-      - ./promtail/config.yml:/etc/promtail/config.yml
-      - ./logs:/var/log/app
-    command: -config.file=/etc/promtail/config.yml
-    depends_on:
-      - loki
+      - redis_data:/data
+    networks:
+      - moderation-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
-  # Grafana (visualizador)
-  grafana:
-    image: grafana/grafana:12.0.0
-    container_name: grafana
+  # ===== RABBITMQ (Event Bus) =====
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: moderation-rabbitmq
     ports:
-      - "3000:3000"
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-    env_file:
-      - .env
-    depends_on:
-      - loki
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - moderation-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 volumes:
-  moderation_chat_mongodb_data:
+  mongodb_data:
+  redis_data:
+  rabbitmq_data:
 
 networks:
-  default:
-    name: moderation-network
+  moderation-network:
+    driver: bridge
