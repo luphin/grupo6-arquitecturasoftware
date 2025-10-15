@@ -301,7 +301,7 @@ class ModerationService:
             detected_words=analysis['detected_words'],
             toxicity_score=analysis['toxicity_score'],
             severity=analysis['severity'],
-            action_taken='pending',  # Se actualiza después
+            action_taken='message_blocked',  # Se actualiza después
             strike_count_at_time=strike_count,
             metadata=metadata or {}
         )
