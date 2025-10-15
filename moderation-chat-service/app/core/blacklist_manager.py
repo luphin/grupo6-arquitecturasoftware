@@ -159,7 +159,7 @@ class BlacklistManager:
         
         text_lower = text.lower()
         detected_words = []
-        
+
         try:
             # 1. Verificar palabras exactas
             words_set = await self._get_words_from_cache(language)
@@ -167,7 +167,7 @@ class BlacklistManager:
                 # Buscar palabra completa (con límites de palabra)
                 if re.search(rf'\b{re.escape(word)}\b', text_lower):
                     detected_words.append(word)
-            
+
             # 2. Verificar patrones regex
             patterns = await self._get_patterns_from_cache(language)
             for pattern in patterns:
@@ -205,28 +205,28 @@ class BlacklistManager:
     ) -> str:
         """
         Obtiene la severidad máxima de las palabras detectadas
-        
+
         Args:
             detected_words: Lista de palabras detectadas
             language: Idioma
-            
+
         Returns:
             'low', 'medium', o 'high'
         """
         severities = []
-        
+
         for word in detected_words:
             word_obj = await self.repository.get_by_word_and_language(word, language)
             if word_obj:
                 severities.append(word_obj.severity)
-        
+
         if not severities:
             return 'medium'  # Default
-        
+
         # Orden de severidad
         severity_order = {'low': 1, 'medium': 2, 'high': 3}
         max_severity = max(severities, key=lambda x: severity_order.get(x, 0))
-        
+
         return max_severity
     
     async def add_word(
