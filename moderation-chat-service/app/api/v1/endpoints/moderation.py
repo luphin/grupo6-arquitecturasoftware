@@ -35,8 +35,7 @@ router = APIRouter()
 )
 async def moderate_message(
     request: ModerateMessageRequest,
-    service: ModerationService = Depends(get_moderation_service),
-    _: None = Depends(check_rate_limit)
+    service: ModerationService = Depends(get_moderation_service)
 ):
     """
     Modera un mensaje completo
