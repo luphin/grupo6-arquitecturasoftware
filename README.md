@@ -117,8 +117,7 @@ graph TD
 
 ### DevOps
 - **Docker** & **Docker Compose** - Containerización
-- **Loguru** - Logging avanzado
-- **Prometheus** (opcional) - Métricas
+- **Prometheus** (idea para futuro) - Métricas
 
 ---
 
