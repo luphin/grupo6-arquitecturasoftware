@@ -418,9 +418,9 @@ REDIS_URL=redis://user:pass@redis-prod:6379/0
 RABBITMQ_URL=amqp://user:pass@rabbitmq-prod:5672/
 ```
 
-### Kubernetes (Ejemplo)
+### Kubernetes (Proximamente)
 
-Ver carpeta `/k8s` para manifiestos de ejemplo.
+Zona en desarrollo 🏗️ para próxima entrega
 
 ---
 
