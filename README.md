@@ -623,7 +623,7 @@ Este proyecto está bajo la licencia MIT. Ver archivo `LICENSE` para más detall
 
 ## 🙏 Agradecimientos
 
-- **Detoxify** - Por el excelente modelo de detección de toxicidad
+- **Detoxify** - Por el excelente modelo de detección de toxicidad, licenciado bajo Apache 2.0, ejecutado mediante Docker sin modificaciones al código fuente.
 - **FastAPI** - Por el increíble framework
 - **Comunidad Open Source** - Por las herramientas utilizadas
 
