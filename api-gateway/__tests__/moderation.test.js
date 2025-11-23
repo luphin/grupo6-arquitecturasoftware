@@ -259,21 +259,5 @@ describe('Servicio de Moderación', () => {
       expect([200, 201, 400, 401, 403, 404, 308]).toContain(response.status);
     });
 
-    // TODO: Agregar test para crear filtro
-    // test('Debe agregar nuevo filtro de palabra', async () => {
-    //   const filter = {
-    //     word: 'badword',
-    //     severity: 'high',
-    //     action: 'block'
-    //   };
-    //
-    //   const response = await request(app)
-    //     .post('/api/moderation/filters')
-    //     .send(filter)
-    //     .set('Authorization', 'Bearer admin-token');
-    //
-    //   expect(response.status).toBe(201);
-    //   expect(response.body).toHaveProperty('id');
-    // });
   });
 });

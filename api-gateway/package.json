@@ -10,6 +10,9 @@
   },
   "jest": {
     "testEnvironment": "node",
+    "setupFiles": [
+      "./__tests__/setup.js"
+    ],
     "coveragePathIgnorePatterns": [
       "/node_modules/"
     ],
