@@ -12,7 +12,7 @@ if (app.default) app = app.default;
 if (app.app) app = app.app;
 
 // === CONFIGURACIÓN AUTH ===
-const API_KEY_VALUE = process.env.TEST_TOKEN || 'your-admin-api-key-change-in-production';
+const API_KEY_VALUE = process.env.TEST_TOKEN;
 const API_KEY_HEADER = 'x-api-key';
 
 const SERVICE_URL = '/api/moderation';
