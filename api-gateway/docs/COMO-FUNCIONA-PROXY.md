@@ -24,7 +24,7 @@ fetch('http://localhost:8080/api/channels/all/programming')
 En `config/services.js`:
 ```javascript
 channels: {
-  url: 'https://channel-api.inf326.nur.dev',
+  url: 'https://channel-api.example.com',
   prefix: '/api/channels',        // <-- Coincide!
   pathRewrite: '',                // <-- Sin reescritura adicional
 }
@@ -37,7 +37,7 @@ channels: {
 | **Entrada (Frontend)** | `http://localhost:8080/api/channels/all/programming` |
 | **Express remueve prefix** | `/all/programming` |
 | **pathRewrite transforma** | `/all/programming` (sin cambios) |
-| **URL Final (Backend)** | `https://channel-api.inf326.nur.dev/all/programming` |
+| **URL Final (Backend)** | `https://channel-api.example.com/all/programming` |
 
 ---
 
@@ -61,7 +61,7 @@ channels: {
 │                                                                              │
 │  3. Busca en config/services.js:                                            │
 │     {                                                                        │
-│       url: 'https://channel-api.inf326.nur.dev',                            │
+│       url: 'https://channel-api.exmaple.com',                                │
 │       prefix: '/api/channels',                                              │
 │       pathRewrite: ''                                                        │
 │     }                                                                        │
@@ -71,7 +71,7 @@ channels: {
 │  5. Aplica pathRewrite (vacío) → /all/programming                           │
 │                                                                              │
 │  6. Construye URL final:                                                    │
-│     https://channel-api.inf326.nur.dev/all/programming                      │
+│     https://channel-api.example.com/all/programming                      │
 │                                                                              │
 └──────────────────────────────────┬──────────────────────────────────────────┘
                                    │
@@ -79,7 +79,7 @@ channels: {
                                    ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         MICROSERVICIO (Channels)                             │
-│                   https://channel-api.inf326.nur.dev                         │
+│                   https://channel-api.exampe.com                             │
 │                                                                              │
 │  Recibe: GET /all/programming                                               │
 │  Procesa y responde                                                         │
@@ -103,7 +103,7 @@ channels: {
 **Configuración:**
 ```javascript
 channels: {
-  url: 'https://channel-api.inf326.nur.dev',
+  url: 'https://channel-api.service-example.com',
   prefix: '/api/channels',
   pathRewrite: ''  // <-- Vacío, no agrega nada
 }
@@ -115,7 +115,7 @@ Frontend:  localhost:8080/api/channels/all/programming
            ↓
 Gateway:   /all/programming (remueve /api/channels)
            ↓
-Backend:   https://channel-api.inf326.nur.dev/all/programming
+Backend:   https://channel-api.service-example.com/all/programming
 ```
 
 ---
@@ -125,7 +125,7 @@ Backend:   https://channel-api.inf326.nur.dev/all/programming
 **Configuración:**
 ```javascript
 users: {
-  url: 'https://users.inf326.nursoft.dev',
+  url: 'https://users.service-example.com',
   prefix: '/api/users',
   pathRewrite: '/v1'  // <-- Agrega /v1 al inicio
 }
@@ -139,12 +139,12 @@ Gateway:   /auth/login (remueve /api/users)
            ↓
            /v1/auth/login (agrega /v1)
            ↓
-Backend:   https://users.inf326.nursoft.dev/v1/auth/login
+Backend:   https://users.service-example.com/v1/auth/login
 ```
 
 **Ejemplo real:**
 - **Petición:** `POST http://localhost:8080/api/users/auth/login`
-- **Redirige a:** `POST https://users.inf326.nursoft.dev/v1/auth/login`
+- **Redirige a:** `POST https://users.service-example.com/v1/auth/login`
 
 ---
 
@@ -153,7 +153,7 @@ Backend:   https://users.inf326.nursoft.dev/v1/auth/login
 **Configuración:**
 ```javascript
 moderation: {
-  url: 'https://moderation.inf326.nur.dev',
+  url: 'https://moderation.service-example.com',
   prefix: '/api/moderation',
   pathRewrite: '/api/v1'  // <-- Agrega /api/v1 al inicio
 }
@@ -167,12 +167,12 @@ Gateway:   /moderate (remueve /api/moderation)
            ↓
            /api/v1/moderate (agrega /api/v1)
            ↓
-Backend:   https://moderation.inf326.nur.dev/api/v1/moderate
+Backend:   https://moderation.service-example.com/api/v1/moderate
 ```
 
 **Ejemplo real:**
 - **Petición:** `POST http://localhost:8080/api/moderation/moderate`
-- **Redirige a:** `POST https://moderation.inf326.nur.dev/api/v1/moderate`
+- **Redirige a:** `POST https://moderation.service-example.com/api/v1/moderate`
 
 ---
 
@@ -181,7 +181,7 @@ Backend:   https://moderation.inf326.nur.dev/api/v1/moderate
 **Configuración:**
 ```javascript
 threads: {
-  url: 'https://demo.inf326.nur.dev',
+  url: 'https://service-example.com',
   prefix: '/api/threads',
   pathRewrite: '/threads'  // <-- Agrega /threads
 }
@@ -195,7 +195,7 @@ Gateway:   /123/messages (remueve /api/threads)
            ↓
            /threads/123/messages (agrega /threads)
            ↓
-Backend:   https://demo.inf326.nur.dev/threads/123/messages
+Backend:   https://service-example.com/threads/123/messages
 ```
 
 ---
@@ -227,11 +227,11 @@ pathRewrite: (path, req) => {
    - `newPath = '/v1' + '/auth/login' = '/v1/auth/login'`
 
 4. **`url`**: Es la URL base del microservicio
-   - Para users: `url = 'https://users.inf326.nursoft.dev'`
+   - Para users: `url = 'https://users.service-example.com'`
 
 5. **URL final**: `url + newPath`
    - `'https://users.inf326.nursoft.dev' + '/v1/auth/login'`
-   - = `'https://users.inf326.nursoft.dev/v1/auth/login'`
+   - = `'https://users.service-example.com/v1/auth/login'`
 
 ---
 
@@ -241,15 +241,15 @@ Cuando haces una petición, el Gateway imprime logs detallados:
 
 ```bash
 # Petición de login
-[PROXY] POST /api/users/auth/login -> https://users.inf326.nursoft.dev/v1/auth/login
+[PROXY] POST /api/users/auth/login -> https://users.service-example.com/v1/auth/login
 [PROXY RESPONSE] POST /api/users/auth/login -> 200
 
 # Petición de canales
-[PROXY] GET /api/channels/all/programming -> https://channel-api.inf326.nur.dev/all/programming
+[PROXY] GET /api/channels/all/programming -> https://channel-api.service-example.com/all/programming
 [PROXY RESPONSE] GET /api/channels/all/programming -> 200
 
 # Petición de moderación
-[PROXY] POST /api/moderation/moderate -> https://moderation.inf326.nur.dev/api/v1/moderate
+[PROXY] POST /api/moderation/moderate -> https://moderation.service-example.com/api/v1/moderate
 [PROXY RESPONSE] POST /api/moderation/moderate -> 200
 ```
 
@@ -257,18 +257,18 @@ Cuando haces una petición, el Gateway imprime logs detallados:
 
 ## Tabla de Transformaciones de Todos los Servicios
 
-| Servicio | Frontend (localhost:8080) | Backend (URL real) |
-|----------|---------------------------|-------------------|
-| **Users** | `/api/users/auth/login` | `https://users.inf326.nursoft.dev/v1/auth/login` |
-| **Channels** | `/api/channels/all` | `https://channel-api.inf326.nur.dev/all` |
-| **Threads** | `/api/threads/123` | `https://demo.inf326.nur.dev/threads/123` |
-| **Messages** | `/api/messages/send` | `https://messages-service.kroder.dev/send` |
-| **Presence** | `/api/presence/status` | `https://presence-134-199-176-197.nip.io/status` |
-| **Moderation** | `/api/moderation/moderate` | `https://moderation.inf326.nur.dev/api/v1/moderate` |
-| **Files** | `/api/files/upload` | `http://file-service-134-199-176-197.nip.io/upload` |
-| **Search** | `/api/search/messages` | `https://searchservice.inf326.nursoft.dev/messages` |
-| **Wiki Bot** | `/api/chatbot/wikipedia/query` | `http://wikipedia-chatbot-134-199-176-197.nip.io/query` |
-| **Prog Bot** | `/api/chatbot/programming/ask` | `https://chatbotprogra.inf326.nursoft.dev/ask` |
+| Servicio | Frontend (localhost:8080) |
+|----------|---------------------------|
+| **Users** | `/api/users/auth/login` |
+| **Channels** | `/api/channels/all` |
+| **Threads** | `/api/threads/123` |
+| **Messages** | `/api/messages/send` |
+| **Presence** | `/api/presence/status` |
+| **Moderation** | `/api/moderation/moderate` |
+| **Files** | `/api/files/upload` |
+| **Search** | `/api/search/messages` |
+| **Wiki Bot** | `/api/chatbot/wikipedia/query` |
+| **Prog Bot** | `/api/chatbot/programming/ask` |
 
 ---
 
@@ -434,7 +434,7 @@ curl http://localhost:8080/services
 Al hacer peticiones, verás en la consola del Gateway:
 
 ```
-[PROXY] POST /api/users/auth/login -> https://users.inf326.nursoft.dev/v1/auth/login
+[PROXY] POST /api/users/auth/login -> https://users.service-example.com/v1/auth/login
 [PROXY RESPONSE] POST /api/users/auth/login -> 200
 ```
 

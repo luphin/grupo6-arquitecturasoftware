@@ -27,25 +27,7 @@ npm install
 
 ## Configuración
 
-Todas las URLs de los microservicios están en `.env`:
-
-```env
-NODE_ENV=development
-PORT=8080
-FRONTEND_URL=http://localhost:3000
-
-# URLs de microservicios
-USERS_URL=https://users.inf326.nursoft.dev
-CHANNELS_URL=https://channel-api.inf326.nur.dev
-THREADS_URL=https://demo.inf326.nur.dev
-MESSAGES_URL=https://messages-service.kroder.dev
-PRESENCE_URL=https://presence-134-199-176-197.nip.io
-MODERATION_URL=https://moderation.inf326.nur.dev
-FILES_URL=http://file-service-134-199-176-197.nip.io
-SEARCH_URL=https://searchservice.inf326.nursoft.dev
-CHATBOT_WIKIPEDIA_URL=http://wikipedia-chatbot-134-199-176-197.nip.io
-CHATBOT_PROGRAMMING_URL=https://chatbotprogra.inf326.nursoft.dev
-```
+Todas las URLs de los microservicios deben estár en el `.env`:
 
 ## Ejecución
 
@@ -60,18 +42,18 @@ nodemon server.js
 
 ## Servicios Disponibles
 
-| Servicio | Prefix | URL Destino |
-|----------|--------|-------------|
-| **Usuarios** | `/api/users` | https://users.inf326.nursoft.dev/v1 |
-| **Canales** | `/api/channels` | https://channel-api.inf326.nur.dev |
-| **Hilos** | `/api/threads` | https://demo.inf326.nur.dev/threads |
-| **Mensajes** | `/api/messages` | https://messages-service.kroder.dev |
-| **Presencia** | `/api/presence` | https://presence-134-199-176-197.nip.io |
-| **Moderación** | `/api/moderation` | https://moderation.inf326.nur.dev/api/v1 |
-| **Archivos** | `/api/files` | http://file-service-134-199-176-197.nip.io |
-| **Búsqueda** | `/api/search` | https://searchservice.inf326.nursoft.dev |
-| **Bot Wikipedia** | `/api/chatbot/wikipedia` | http://wikipedia-chatbot-134-199-176-197.nip.io |
-| **Bot Programación** | `/api/chatbot/programming` | https://chatbotprogra.inf326.nursoft.dev |
+| Servicio | Prefix |
+|----------|--------|
+| **Usuarios** | `/api/users` |
+| **Canales** | `/api/channels` |
+| **Hilos** | `/api/threads` |
+| **Mensajes** | `/api/messages` |
+| **Presencia** | `/api/presence` |
+| **Moderación** | `/api/moderation` |
+| **Archivos** | `/api/files` |
+| **Búsqueda** | `/api/search` |
+| **Bot Wikipedia** | `/api/chatbot/wikipedia` |
+| **Bot Programación** | `/api/chatbot/programming` |
 
 ## Rutas del Gateway
 
@@ -191,7 +173,7 @@ node server.js
 El Gateway imprime logs detallados en consola:
 
 ```
-[PROXY] POST /api/users/auth/login -> https://users.inf326.nursoft.dev/v1/auth/login
+[PROXY] POST /api/users/auth/login -> [domain]/v1/auth/login
 [PROXY RESPONSE] POST /api/users/auth/login -> 200
 ```
 

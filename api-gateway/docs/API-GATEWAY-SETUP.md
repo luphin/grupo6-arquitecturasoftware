@@ -36,8 +36,8 @@ Ya existe un archivo `.env` en `api-gateway/.env` con la configuración:
 ```env
 PORT=8080
 FRONTEND_URL=http://localhost:3000
-MODERATION_URL=https://moderation.inf326.nur.dev
-USERS_URL=https://users.inf326.nur.dev
+MODERATION_URL= [url del servicio]
+USERS_URL= [url del servicio]
 ```
 
 ### 3. Ejecutar el API Gateway
@@ -51,8 +51,8 @@ Deberías ver:
 ```
 API Gateway running on http://localhost:8080
 Proxying to:
-  - Moderation: https://moderation.inf326.nur.dev
-  - Users: https://users.inf326.nur.dev
+  - Moderation: [url del servicio] 
+  - Users: [url del servicio] 
 ```
 
 ### 4. Ejecutar el Frontend
@@ -99,12 +99,12 @@ const data = await response.json();
 ## Rutas Disponibles
 
 ### Moderación (`/api/moderation/*`)
-- **Target**: `https://moderation.inf326.nur.dev/api/v1/*`
-- **Ejemplo**: `GET /api/moderation/health` → `https://moderation.inf326.nur.dev/api/v1/health`
+- **Target**: `https://moderation.service-example.com/api/v1/*`
+- **Ejemplo**: `GET /api/moderation/health` → `https://moderation.service-example.com/api/v1/health`
 
 ### Usuarios (`/api/users/*`)
-- **Target**: `https://users.inf326.nur.dev/*`
-- **Ejemplo**: `POST /api/users/login` → `https://users.inf326.nur.dev/login`
+- **Target**: `https://users.service-example.com/*`
+- **Ejemplo**: `POST /api/users/login` → `https://users.service-example.com/login`
 
 ### Agregar Más Microservicios
 
@@ -113,14 +113,14 @@ Cuando otros equipos publiquen sus APIs, agrega las rutas en `api-gateway/server
 ```javascript
 // Para el servicio de Channels
 app.use('/api/channels', createProxyMiddleware({
-    target: 'https://channels.inf326.nur.dev',
+    target: 'https://channels.service-example.com',
     changeOrigin: true,
     pathRewrite: { '^/api/channels': '/api/v1' }
 }));
 
 // Para el servicio de Messages
 app.use('/api/messages', createProxyMiddleware({
-    target: 'https://messages.inf326.nur.dev',
+    target: 'https://messages.service-example.com',
     changeOrigin: true,
     pathRewrite: { '^/api/messages': '/api/v1' }
 }));
@@ -129,8 +129,8 @@ app.use('/api/messages', createProxyMiddleware({
 Y actualiza el archivo `.env`:
 
 ```env
-CHANNELS_URL=https://channels.inf326.nur.dev
-MESSAGES_URL=https://messages.inf326.nur.dev
+CHANNELS_URL=...
+MESSAGES_URL=...
 ```
 
 ## Testing
@@ -185,7 +185,7 @@ fetch('http://localhost:8080/api/moderation/health')
 **Solución**: Verifica que:
 1. La URL del microservicio en `.env` sea correcta
 2. El microservicio esté desplegado y accesible públicamente
-3. Prueba la URL directamente en el navegador: `https://moderation.inf326.nur.dev/api/v1/health`
+3. Prueba la URL directamente en el navegador: `https://moderation.service-example.com/api/v1/health`
 
 ## Despliegue en Producción
 
@@ -196,8 +196,8 @@ Despliega ambos (frontend + gateway) en el mismo servidor/contenedor.
 
 ### Opción 2: Llamar directamente a las APIs públicas
 Si no hay problemas de CORS en producción, el frontend puede llamar directamente a:
-- `https://moderation.inf326.nur.dev/api/v1/...`
-- `https://users.inf326.nur.dev/...`
+- `https://moderation.service-example.com/api/v1/...`
+- `https://users.service-example.com/...`
 
 Solo actualiza `NEXT_PUBLIC_API_URL` según el entorno:
 ```env
