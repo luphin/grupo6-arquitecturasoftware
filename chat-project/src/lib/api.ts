@@ -120,8 +120,23 @@ export const channelsApi = {
    * Obtener threads de un canal
    */
   getChannelThreads: async (channelId: string): Promise<Thread[]> => {
-    return apiRequest(`/api/threads/channels/${channelId}`, {
+    return apiRequest(`/api/threads/channel/get_threads?channel_id=${channelId}`, {
       method: 'GET',
+    });
+  },
+
+  /**
+   * Crear un nuevo thread en un canal
+   */
+  createThread: async (channelId: string, title: string, createdBy: string, metadata?: Record<string, any>): Promise<Thread> => {
+    return apiRequest(`/api/threads/threads/?channel_id=${channelId}&thread_name=${title}&user_id=${createdBy}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        channel_id: channelId,
+        title,
+        created_by: createdBy,
+        metadata: metadata || {},
+      }),
     });
   },
 };

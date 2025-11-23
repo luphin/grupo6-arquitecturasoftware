@@ -24,6 +24,8 @@ export function ChannelAccordion({
   const [openChannelId, setOpenChannelId] = useState<string | null>(null);
   const [threads, setThreads] = useState<Record<string, Thread[]>>({});
   const [loadingThreads, setLoadingThreads] = useState<Record<string, boolean>>({});
+  const [creatingThreadForChannel, setCreatingThreadForChannel] = useState<string | null>(null);
+  const [newThreadTitle, setNewThreadTitle] = useState('');
 
   const toggleChannel = async (channelId: string) => {
     if (openChannelId === channelId) {
@@ -45,6 +47,34 @@ export function ChannelAccordion({
           setLoadingThreads(prev => ({ ...prev, [channelId]: false }));
         }
       }
+    }
+  };
+
+  const handleCreateThread = async (channelId: string) => {
+    if (!newThreadTitle.trim()) return;
+
+    try {
+      const newThread = await channelsApi.createThread(
+        channelId,
+        newThreadTitle.trim(),
+        user.id
+      );
+
+      // Actualizar la lista de threads
+      setThreads(prev => ({
+        ...prev,
+        [channelId]: [newThread, ...(prev[channelId] || [])],
+      }));
+
+      // Limpiar el formulario
+      setNewThreadTitle('');
+      setCreatingThreadForChannel(null);
+
+      // Seleccionar el nuevo thread
+      onThreadSelect(newThread.thread_id, newThread.thread_name);
+    } catch (error) {
+      console.error('Error creating thread:', error);
+      alert('Error al crear el chat. Por favor intenta de nuevo.');
     }
   };
 
@@ -141,33 +171,89 @@ export function ChannelAccordion({
                   <div className="px-3 py-2 text-xs text-gray-500">
                     Cargando chats...
                   </div>
-                ) : threads[channel.id]?.length > 0 ? (
+                ) : (
                   <>
-                    {threads[channel.id].map((thread) => (
+                    {/* Botón para agregar nuevo hilo */}
+                    {creatingThreadForChannel === channel.id ? (
+                      <div className="px-3 py-2 bg-muted rounded-md">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={newThreadTitle}
+                            onChange={(e) => setNewThreadTitle(e.target.value)}
+                            placeholder="Nombre del chat..."
+                            className="flex-1 px-2 py-1 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleCreateThread(channel.id);
+                              } else if (e.key === 'Escape') {
+                                setCreatingThreadForChannel(null);
+                                setNewThreadTitle('');
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={() => handleCreateThread(channel.id)}
+                            className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={() => {
+                              setCreatingThreadForChannel(null);
+                              setNewThreadTitle('');
+                            }}
+                            className="px-3 py-1 text-sm bg-background border border-border rounded-md hover:bg-muted transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
                       <button
-                        key={thread.thread_id}
-                        onClick={() => onThreadSelect(thread.thread_id, thread.thread_name)}
-                        className={`w-full text-left px-3 py-2 rounded-md transition-colors cursor-pointer ${selectedThreadId === thread.thread_id
-                          ? 'bg-muted'
-                          : 'hover:bg-muted'
-                          }`}
+                        onClick={() => setCreatingThreadForChannel(channel.id)}
+                        className="w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-colors cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-foreground">💬</span>
-                          <span
-                            className={`text-sm ${selectedThreadId === thread.thread_id ? 'font-medium' : ''
-                              } text-foreground`}
-                          >
-                            {thread.thread_name}
+                          <span className="text-sm text-foreground">➕</span>
+                          <span className="text-sm text-muted-foreground">
+                            Agregar chat
                           </span>
                         </div>
                       </button>
-                    ))}
+                    )}
+
+                    {/* Lista de threads existentes */}
+                    {threads[channel.id]?.length > 0 ? (
+                      <>
+                        {threads[channel.id].map((thread) => (
+                          <button
+                            key={thread.thread_id}
+                            onClick={() => onThreadSelect(thread.thread_id, thread.thread_name)}
+                            className={`w-full text-left px-3 py-2 rounded-md transition-colors cursor-pointer ${selectedThreadId === thread.thread_id
+                              ? 'bg-muted'
+                              : 'hover:bg-muted'
+                              }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-foreground">💬</span>
+                              <span
+                                className={`text-sm ${selectedThreadId === thread.thread_id ? 'font-medium' : ''
+                                  } text-foreground`}
+                              >
+                                {thread.thread_name}
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    ) : (
+                      <div className="px-3 py-2 text-xs text-gray-500">
+                        No hay chats en este canal
+                      </div>
+                    )}
                   </>
-                ) : (
-                  <div className="px-3 py-2 text-xs text-gray-500">
-                    No hay chats en este canal
-                  </div>
                 )}
               </div>
             )}
