@@ -215,3 +215,6 @@ __marimo__/
 
 # Kubernetes config
 k8s/
+
+# node modules
+node_modules/
