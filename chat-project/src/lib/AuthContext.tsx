@@ -25,8 +25,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Define la URL BASE de tu API Gateway
-const API_GATEWAY_URL = 'https://users.inf326.nursoft.dev/v1';
+// Define la URL BASE de tu API Gateway local
+// En desarrollo usa el gateway local, en producción usa la URL directa
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL;
 
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -43,16 +44,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    
-    const loginUrl = `${API_GATEWAY_URL}/auth/login`;
+    // Llama al API Gateway local que redirige a users.inf326.nur.dev
+    const loginUrl = `${API_GATEWAY_URL}/api/users/auth/login`;
 
     const payload = {
-      username_or_email: email, 
+      username_or_email: email,
       password: password,
     };
-        
+
     try {
-      // 1. Llamada al API Gateway (ahora apuntando al host users.inf326...)
+      console.log(`[AUTH] Llamando a: ${loginUrl}`);
+
+      // 1. Llamada al API Gateway local
       const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
@@ -64,34 +67,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 2. Manejo de errores HTTP (401/403)
       if (!response.ok) {
         // Lee el mensaje de error para lanzarlo al LoginForm
-        const errorDetail = await response.json();
-        throw new Error(errorDetail.detail || 'Credenciales inválidas. Intenta de nuevo.');
+        const errorDetail = await response.json().catch(() => ({}));
+        throw new Error(errorDetail.detail || errorDetail.message || 'Credenciales inválidas. Intenta de nuevo.');
       }
 
       // 3. Procesar respuesta exitosa (200 OK)
       const data = await response.json();
-            
-      // 4. Mapear y guardar el usuario (ajustamos el status al tipo corregido)
-      const authenticatedUser: User = { 
-          id: data.userId || 'temp-id', 
-          username: data.username || email.split('@')[0], 
+
+      console.log('[AUTH] Login exitoso:', data);
+
+      // 4. Mapear y guardar el usuario
+      const authenticatedUser: User = {
+          id: data.userId || data.id || 'temp-id',
+          username: data.username || email.split('@')[0],
           email: data.email || email,
-          status: 'online', // Usamos 'online' por defecto para el estado inicial de login
-          createdAt: new Date(), 
+          status: 'online', // Estado online después del login
+          createdAt: new Date(data.createdAt || Date.now()),
       };
 
       setUser(authenticatedUser);
       localStorage.setItem('user', JSON.stringify(authenticatedUser));
-      
+
+      // Guardar token si existe
+      if (data.token || data.access_token) {
+        localStorage.setItem('auth_token', data.token || data.access_token);
+      }
+
     } catch (error) {
+      console.error('[AUTH] Error en login:', error);
       // Re-lanza el error para que LoginForm lo capture y detenga la redirección
-      throw error; 
+      throw error;
     }
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('auth_token');
   };
 
   return (
