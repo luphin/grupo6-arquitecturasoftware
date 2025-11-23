@@ -2,7 +2,7 @@ import React from 'react';
 import { User } from '@/types';
 
 interface AvatarProps {
-  user: Pick<User, 'username' | 'avatar' | 'status'>;
+  user: Pick<User, 'username' | 'status'> & { avatar?: string };
   size?: 'sm' | 'md' | 'lg';
   showStatus?: boolean;
 }

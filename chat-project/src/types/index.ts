@@ -3,9 +3,17 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  avatar?: string;
+  full_name: string;
+  is_active: boolean;
   status: 'online' | 'offline' | 'away';
-  createdAt: Date;
+  createdAt?: Date;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  isLoading: boolean;
 }
 
 // Channel Types
@@ -13,37 +21,42 @@ export interface Channel {
   id: string;
   name: string;
   description?: string;
-  type: 'public' | 'private';
-  createdBy: string;
-  createdAt: Date;
-  memberCount?: number;
+  owner_id: string;
+  channel_type: 'public' | 'private';
+  created_at: number;
+  user_count: number;
+}
+
+export interface ChannelMember {
+  id: string;
+  joined_at: number;
+  status: 'normal' | 'banned' | 'muted';
 }
 
 // Thread Types
 export interface Thread {
-  id: string;
-  channelId: string;
-  title: string;
-  createdBy: string;
-  createdAt: Date;
-  messageCount?: number;
-  lastMessageAt?: Date;
+  thread_id: string;
+  thread_name: string;
+  channel_id?: string;
 }
 
 // Message Types
 export interface Message {
   id: string;
-  threadId: string;
-  channelId: string;
-  content: string;
-  userId: string;
-  user?: User;
+  thread_id: string;
+  user_id: string;
   type: 'text' | 'file' | 'system';
-  attachments?: Attachment[];
-  createdAt: Date;
-  updatedAt?: Date;
-  isEdited: boolean;
-  moderationStatus?: 'pending' | 'approved' | 'flagged' | 'removed';
+  content: string;
+  paths?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+// Messages Response
+export interface MessagesResponse {
+  items: Message[];
+  next_cursor: string | null;
+  has_more: boolean;
 }
 
 // Attachment Types

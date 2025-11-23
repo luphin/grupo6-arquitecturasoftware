@@ -1,6 +1,5 @@
 import React from 'react';
 import { Message } from '@/types';
-import { Avatar } from '@/components/ui/Avatar';
 
 interface MessageItemProps {
   message: Message;
@@ -9,11 +8,7 @@ interface MessageItemProps {
 }
 
 export function MessageItem({ message, onEdit, onDelete }: MessageItemProps) {
-  if (!message.user) return null;
-
   const isSystemMessage = message.type === 'system';
-  const isFlagged = message.moderationStatus === 'flagged';
-  const isRemoved = message.moderationStatus === 'removed';
 
   if (isSystemMessage) {
     return (
@@ -26,41 +21,29 @@ export function MessageItem({ message, onEdit, onDelete }: MessageItemProps) {
   return (
     <div className="px-4 py-3 hover:bg-muted transition-colors group cursor-pointer">
       <div className="flex gap-3">
-        <Avatar user={message.user} size="md" showStatus />
+        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+          {message.user_id.substring(0, 2).toUpperCase()}
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
             <span className="font-semibold text-foreground">
-              {message.user.username}
+              User {message.user_id}
             </span>
             <span className="text-xs text-foreground">
-              {new Date(message.createdAt).toLocaleTimeString()}
+              {new Date(message.created_at).toLocaleTimeString()}
             </span>
-            {message.isEdited && (
-              <span className="text-xs text-foreground">(edited)</span>
-            )}
-            {isFlagged && (
-              <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded">
-                Flagged
-              </span>
-            )}
           </div>
           <div className="mt-1">
-            {isRemoved ? (
-              <p className="text-sm text-muted-foreground italic">
-                This message has been removed by moderation
-              </p>
-            ) : (
-              <p className="text-sm text-foreground whitespace-pre-wrap break-words">
-                {message.content}
-              </p>
-            )}
+            <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+              {message.content}
+            </p>
           </div>
-          {message.attachments && message.attachments.length > 0 && (
+          {message.paths && message.paths.length > 0 && (
             <div className="mt-2 space-y-1">
-              {message.attachments.map((attachment) => (
+              {message.paths.map((path, index) => (
                 <a
-                  key={attachment.id}
-                  href={attachment.fileUrl}
+                  key={index}
+                  href={path}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
@@ -78,12 +61,12 @@ export function MessageItem({ message, onEdit, onDelete }: MessageItemProps) {
                       d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
                     />
                   </svg>
-                  {attachment.fileName}
+                  File {index + 1}
                 </a>
               ))}
             </div>
           )}
-          {!isRemoved && (onEdit || onDelete) && (
+          {(onEdit || onDelete) && (
             <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
               {onEdit && (
                 <button

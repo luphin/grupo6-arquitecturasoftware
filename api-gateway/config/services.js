@@ -15,7 +15,7 @@ module.exports = {
   channels: {
     url: process.env.CHANNELS_URL ,
     prefix: '/api/channels',
-    pathRewrite: '',
+    pathRewrite: '/v1',
     description: 'Servicio de creación y gestión de canales'
   },
 
@@ -39,7 +39,7 @@ module.exports = {
   presence: {
     url: process.env.PRESENCE_URL ,
     prefix: '/api/presence',
-    pathRewrite: '',
+    pathRewrite: '/api/v1.0.0',
     description: 'Servicio de estado de conexión de usuarios'
   },
 
@@ -55,7 +55,7 @@ module.exports = {
   files: {
     url: process.env.FILES_URL ,
     prefix: '/api/files',
-    pathRewrite: '',
+    pathRewrite: '/v1',
     description: 'Servicio de carga y gestión de archivos'
   },
 

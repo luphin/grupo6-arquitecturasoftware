@@ -11,7 +11,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && !isLoading) {
-      router.push('/channels/1');
+      router.push('/channels');
     }
   }, [user, isLoading, router]);
 

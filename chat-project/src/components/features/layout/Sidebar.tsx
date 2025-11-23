@@ -2,14 +2,23 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Channel } from '@/types';
-import { ChannelList } from '../channels/ChannelList';
+import { ChannelAccordion } from '../channels/ChannelAccordion';
+import { ChannelSearch } from '../channels/ChannelSearch';
+import { ProfileView } from './ProfileView';
+import { SettingsView } from './SettingsView';
 import { Button } from '@/components/ui/Button';
+import { Navbar } from '@/components/features/layout/Navbar';
+import { useAuth } from '@/lib/AuthContext';
 
 interface SidebarProps {
   channels: Channel[];
-  selectedChannelId?: string;
-  onChannelSelect: (channelId: string) => void;
+  selectedThreadId?: string;
+  onThreadSelect: (threadId: string, threadName: string) => void;
   onCreateChannel?: () => void;
+  selectedView: 'channels' | 'search' | 'profile' | 'settings';
+  onLogout: () => void;
+  onChannelJoined?: () => void; // Callback para refrescar canales
+  onChannelSettingsOpen?: (channel: Channel) => void; // Callback para abrir settings
 }
 
 const MIN_WIDTH = 230;
@@ -18,13 +27,18 @@ const DEFAULT_WIDTH = 256;
 
 export function Sidebar({
   channels,
-  selectedChannelId,
-  onChannelSelect,
+  selectedThreadId,
+  onThreadSelect,
   onCreateChannel,
+  selectedView,
+  onLogout,
+  onChannelJoined,
+  onChannelSettingsOpen,
 }: SidebarProps) {
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     // Cargar ancho guardado en localStorage
@@ -71,34 +85,48 @@ export function Sidebar({
     setIsResizing(true);
   };
 
+  if (!user) {
+    return null;
+  }
+
+  const renderContent = () => {
+    switch (selectedView) {
+      case 'channels':
+        return (
+          <>
+            <div className="p-4 pb-0">
+              <h2 className="text-lg font-bold text-muted-foreground">Canales</h2>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              <ChannelAccordion
+                channels={channels}
+                selectedThreadId={selectedThreadId}
+                onThreadSelect={onThreadSelect}
+                user={user}
+                onChannelUpdated={onChannelJoined}
+                onChannelSettingsOpen={onChannelSettingsOpen}
+              />
+            </div>
+          </>
+        );
+      case 'search':
+        return <ChannelSearch onChannelSelect={onThreadSelect} user={user} onChannelJoined={onChannelJoined} />;
+      case 'profile':
+        return <ProfileView user={user} />;
+      case 'settings':
+        return <SettingsView onLogout={onLogout} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <aside
       ref={sidebarRef}
       style={{ width: `${width}px` }}
       className="bg-background border-r border-border flex flex-col relative"
     >
-      <div className="p-4 pb-0">
-        <h2 className="text-lg font-bold text-muted-foreground">Canales</h2>
-      </div>
-      <div className="flex-1 overflow-y-auto p-2">
-        <ChannelList
-          channels={channels}
-          selectedChannelId={selectedChannelId}
-          onChannelSelect={onChannelSelect}
-        />
-      </div>
-      {onCreateChannel && (
-        <div className="p-4 border-t border-border">
-          <Button
-            onClick={onCreateChannel}
-            variant="primary"
-            size="sm"
-            className="w-full"
-          >
-            + Create Channel
-          </Button>
-        </div>
-      )}
+      {renderContent()}
 
       {/* Resize Handle */}
       <div

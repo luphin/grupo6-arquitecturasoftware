@@ -13,7 +13,7 @@ export function ChannelHeader({ channel, onSettingsClick }: ChannelHeaderProps) 
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-foreground"># {channel.name}</h1>
-            {channel.type === 'private' && (
+            {channel.channel_type === 'private' && (
               <svg
                 className="w-5 h-5 text-gray-500"
                 fill="none"
@@ -29,9 +29,6 @@ export function ChannelHeader({ channel, onSettingsClick }: ChannelHeaderProps) 
               </svg>
             )}
           </div>
-          {channel.description && (
-            <p className="text-sm text-muted-foreground mt-1">{channel.description}</p>
-          )}
         </div>
         {onSettingsClick && (
           <button

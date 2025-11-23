@@ -2,6 +2,8 @@
  * API Client - Centraliza todas las llamadas al API Gateway
  */
 
+import { Channel, Thread, Message, MessagesResponse } from '@/types';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 interface ApiOptions extends RequestInit {
@@ -101,52 +103,51 @@ export const usersApi = {
 };
 
 // ============================================
-// CHANNELS API (cuando esté disponible)
+// CHANNELS API
 // ============================================
 
 export const channelsApi = {
   /**
-   * Obtener todos los canales
+   * Obtener canales del usuario
    */
-  getChannels: async () => {
-    return apiRequest('/api/channels', {
+  getUserChannels: async (userId: string): Promise<Channel[]> => {
+    return apiRequest(`/api/channels/members/${userId}`, {
       method: 'GET',
     });
   },
 
   /**
-   * Crear canal
+   * Obtener threads de un canal
    */
-  createChannel: async (name: string, description: string, isPrivate: boolean) => {
-    return apiRequest('/api/channels', {
-      method: 'POST',
-      body: JSON.stringify({ name, description, isPrivate }),
+  getChannelThreads: async (channelId: string): Promise<Thread[]> => {
+    return apiRequest(`/api/threads/channels/${channelId}`, {
+      method: 'GET',
     });
   },
 };
 
 // ============================================
-// MESSAGES API (cuando esté disponible)
+// MESSAGES API
 // ============================================
 
 export const messagesApi = {
   /**
-   * Obtener mensajes de un canal
+   * Obtener mensajes de un thread
    */
-  getMessages: async (channelId: string) => {
-    return apiRequest('/api/messages', {
+  getThreadMessages: async (threadId: string, cursor?: string): Promise<MessagesResponse> => {
+    return apiRequest(`/api/messages/threads/${threadId}/messages`, {
       method: 'GET',
-      params: { channelId },
+      params: cursor ? { cursor } : undefined,
     });
   },
 
   /**
-   * Enviar mensaje
+   * Enviar mensaje a un thread
    */
-  sendMessage: async (channelId: string, content: string) => {
-    return apiRequest('/api/messages', {
+  sendMessage: async (threadId: string, content: string): Promise<Message> => {
+    return apiRequest(`/api/messages/threads/${threadId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ channelId, content }),
+      body: JSON.stringify({ content, type: 'text' }),
     });
   },
 };

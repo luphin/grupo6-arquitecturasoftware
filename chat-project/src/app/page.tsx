@@ -12,7 +12,7 @@ export default function Home() {
   useEffect(() => {
     // If user is already logged in, redirect to channels
     if (user && !isLoading) {
-      router.push('/channels/1');
+      router.push('/channels');
     }
   }, [user, isLoading, router]);
 

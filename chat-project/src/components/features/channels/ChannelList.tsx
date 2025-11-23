@@ -42,7 +42,7 @@ export function ChannelList({
               <span className="text-lg text-foreground">#</span>
               <span className="font-medium text-foreground">{channel.name}</span>
             </div>
-            {channel.type === 'private' && (
+            {channel.channel_type === 'private' && (
               <svg
                 className="w-4 h-4 text-foreground"
                 fill="none"

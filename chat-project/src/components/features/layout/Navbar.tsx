@@ -14,9 +14,9 @@ export function Navbar({ user, onLogout }: NavbarProps) {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <nav className="bg-background border-b border-border px-6 py-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <nav className="bg-background">
+      <div className="flex ">
+        <div className="flex gap-2">
         </div>
         <div className="flex items-center gap-3">
           {/* Theme Toggle Button */}

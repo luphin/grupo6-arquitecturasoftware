@@ -10,45 +10,30 @@ const mockChannel = {
   id: '1',
   name: 'general',
   description: 'General discussion',
-  type: 'public' as const,
-  createdBy: '1',
-  createdAt: new Date(),
+  owner_id: '1',
+  channel_type: 'public' as const,
+  created_at: Date.now(),
+  user_count: 10,
 };
 
 const mockMessages = [
   {
     id: '1',
-    threadId: '1',
-    channelId: '1',
+    thread_id: '1',
+    user_id: '1',
     content: 'Hello everyone!',
-    userId: '1',
-    user: {
-      id: '1',
-      username: 'Alice',
-      email: 'alice@example.com',
-      status: 'online' as const,
-      createdAt: new Date(),
-    },
     type: 'text' as const,
-    createdAt: new Date(),
-    isEdited: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
   {
     id: '2',
-    threadId: '1',
-    channelId: '1',
+    thread_id: '1',
+    user_id: '2',
     content: 'Hi Alice! How are you?',
-    userId: '2',
-    user: {
-      id: '2',
-      username: 'Bob',
-      email: 'bob@example.com',
-      status: 'online' as const,
-      createdAt: new Date(),
-    },
     type: 'text' as const,
-    createdAt: new Date(),
-    isEdited: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
 ];
 
@@ -65,20 +50,12 @@ export default function ChannelPage({
 
     const newMessage = {
       id: String(messages.length + 1),
-      threadId: '1',
-      channelId: params.channelId,
+      thread_id: '1',
+      user_id: '1',
       content,
-      userId: '1',
-      user: {
-        id: '1',
-        username: 'Demo User',
-        email: 'demo@example.com',
-        status: 'online' as const,
-        createdAt: new Date(),
-      },
       type: 'text' as const,
-      createdAt: new Date(),
-      isEdited: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     setMessages([...messages, newMessage]);
