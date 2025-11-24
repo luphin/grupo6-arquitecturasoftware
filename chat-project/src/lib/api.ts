@@ -183,30 +183,32 @@ export const channelsApi = {
    * Obtener threads de un canal
    */
   getChannelThreads: async (channelId: string): Promise<Thread[]> => {
-    const response = await apiRequest<any[]>(`/api/threads/channel/get_threads?channel_id=${channelId}`, {
-      method: 'GET',
-    });
+      const response = await apiRequest<any[]>(`/api/threads/channel/get_threads?channel_id=${channelId}`, {
+        method: 'GET',
+      });
 
-    // Mapear la respuesta del backend al formato esperado por el frontend
-    return response.map((thread: any) => ({
-      thread_id: thread.thread_id,
-      thread_name: thread.title || thread.thread_name, // Usar 'title' del backend
-      thread_created_by: thread.created_by || thread.thread_created_by,
-      channel_id: thread.channel_id,
-    }));
-  },
+      // Mapear la respuesta del backend al formato esperado por el frontend
+      return response.map((thread: any) => ({
+        thread_id: thread.thread_id,
+        uuid: thread.uuid, // <--- NUEVO: Mapeo directo del UUID
+        thread_name: thread.title || thread.thread_name, 
+        thread_created_by: thread.created_by || thread.thread_created_by,
+        channel_id: thread.channel_id,
+      }));
+    },
 
   /**
    * Crear un nuevo thread en un canal
    */
-  createThread: async (channelId: string, title: string, createdBy: string, metadata?: Record<string, any>): Promise<Thread> => {
+    createThread: async (channelId: string, title: string, createdBy: string, metadata?: Record<string, any>): Promise<Thread> => {
     const response = await apiRequest<any>(`/api/threads/threads/threads/?channel_id=${channelId}&thread_name=${title}&user_id=${createdBy}`, {
       method: 'POST',
     });
 
-    // Mapear la respuesta del backend al formato esperado por el frontend
+    // Mapear la respuesta del backend
     return {
       thread_id: response.thread_id,
+      uuid: response.uuid, // <--- NUEVO: Asegúrate de capturarlo también al crear
       thread_name: response.title || response.thread_name,
       thread_created_by: response.created_by || response.thread_created_by || createdBy,
       channel_id: response.channel_id || channelId,

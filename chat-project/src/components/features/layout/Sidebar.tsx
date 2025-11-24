@@ -146,8 +146,12 @@ export function Sidebar({
               // Convertir a Thread object para chatbots
               onThreadSelect({
                 thread_id: id,
+                // ✅ SOLUCIÓN: Agregamos el uuid (reutilizamos el id del bot)
+                uuid: id, 
                 thread_name: name,
-                thread_created_by: 'system', // Los bots son creados por el sistema
+                thread_created_by: 'system',
+                // ⚠️ Opcional: Si tu tipo Thread requiere channel_id, agrega uno ficticio:
+                channel_id: 'bots_channel' 
               });
             }}
             selectedId={selectedThreadId}
