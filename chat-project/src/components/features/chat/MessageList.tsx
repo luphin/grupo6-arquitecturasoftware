@@ -45,10 +45,13 @@ export function MessageList({
     );
   }
 
+  // Ordenar: mensajes más antiguos arriba, más recientes abajo
+  const orderedMessages = [...messages].reverse();
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="flex flex-col">
-        {messages.map((message) => (
+        {orderedMessages.map((message) => (
           <MessageItem
             key={message.id}
             message={message}
@@ -62,3 +65,4 @@ export function MessageList({
     </div>
   );
 }
+

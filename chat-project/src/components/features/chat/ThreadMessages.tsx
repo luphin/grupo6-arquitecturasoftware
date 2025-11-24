@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Message, MessagesResponse, Thread } from '@/types';
 import { messagesApi } from '@/lib/api';
 import { ChatInput } from './ChatInput';
@@ -20,10 +20,7 @@ export function ThreadMessages({ thread }: ThreadMessagesProps) {
   const [sending, setSending] = useState(false);
   const { user } = useAuth();
   const { onThreadSettingsOpen } = useChatContext();
-
-  useEffect(() => {
-    loadMessages();
-  }, [thread.thread_id]);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadMessages = async (cursor?: string) => {
     try {
@@ -31,7 +28,7 @@ export function ThreadMessages({ thread }: ThreadMessagesProps) {
       const response: MessagesResponse = await messagesApi.getThreadMessages(thread.uuid, cursor);
 
       if (cursor) {
-        // Cargar más mensajes (append)
+        // Cargar más mensajes antiguos (append al final)
         setMessages(prev => [...prev, ...response.items]);
       } else {
         // Primera carga
@@ -46,6 +43,59 @@ export function ThreadMessages({ thread }: ThreadMessagesProps) {
       setLoading(false);
     }
   };
+
+  // Función para verificar nuevos mensajes (polling)
+  const checkForNewMessages = async () => {
+    if (messages.length === 0) return;
+
+    try {
+      // Obtener mensajes desde la API
+      const response: MessagesResponse = await messagesApi.getThreadMessages(thread.uuid);
+
+      // Filtrar solo los mensajes nuevos (que no están en el estado actual)
+      const existingIds = new Set(messages.map(m => m.id));
+      const newMessages = response.items.filter(m => !existingIds.has(m.id));
+
+      if (newMessages.length > 0) {
+        // Agregar nuevos mensajes al INICIO del array (son los más recientes)
+        setMessages(prev => [...newMessages, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error checking for new messages:', error);
+    }
+  };
+
+  // Cargar mensajes iniciales
+  useEffect(() => {
+    loadMessages();
+
+    // Cleanup al desmontar o cambiar de thread
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [thread.thread_id]);
+
+  // Polling para nuevos mensajes
+  useEffect(() => {
+    // Limpiar intervalo anterior si existe
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    // Configurar nuevo intervalo de polling (cada 3 segundos)
+    pollingIntervalRef.current = setInterval(() => {
+      checkForNewMessages();
+    }, 3000);
+
+    // Cleanup
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [messages, thread.thread_id]);
 
   const handleSendMessage = async (content: string) => {
     if (!user) {
@@ -62,8 +112,9 @@ export function ThreadMessages({ thread }: ThreadMessagesProps) {
         'text'
       );
 
-      // Agregar el nuevo mensaje a la lista
-      setMessages(prev => [...prev, newMessage]);
+      // Agregar el nuevo mensaje al INICIO del array (es el más reciente)
+      // Porque la API devuelve mensajes del más reciente al más antiguo
+      setMessages(prev => [newMessage, ...prev]);
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Error al enviar el mensaje. Por favor intenta de nuevo.');
