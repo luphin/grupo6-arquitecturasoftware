@@ -258,6 +258,13 @@ export function ChannelSettingsSidebar({
 
                         <div>
                             <label className="block text-sm font-medium text-foreground mb-2">
+                                ID del Canal
+                            </label>
+                            <p className="text-foreground text-sm font-mono break-all">{channel.id}</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Tipo de Canal
                             </label>
                             {isEditing && isOwner ? (
@@ -329,6 +336,70 @@ export function ChannelSettingsSidebar({
                         )}
                     </div>
 
+                    {/* Add User Section - Only for private channels and owners */}
+                    {isOwner && channel.channel_type === 'private' && (
+                        <div className="border-t border-border pt-4 space-y-3">
+                            <h3 className="text-sm font-medium text-foreground">Agregar Usuario</h3>
+                            <p className="text-xs text-muted-foreground">
+                                Agrega usuarios al canal privado ingresando su ID
+                            </p>
+                            <div className="space-y-2">
+                                <input
+                                    type="text"
+                                    placeholder="ID del usuario"
+                                    className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                    id="add-user-input"
+                                />
+                                <button
+                                    onClick={async () => {
+                                        const input = document.getElementById('add-user-input') as HTMLInputElement;
+                                        const userId = input?.value.trim();
+
+                                        if (!userId) {
+                                            setAlert({ type: 'error', message: 'Por favor ingresa un ID de usuario' });
+                                            return;
+                                        }
+
+                                        try {
+                                            setAlert(null);
+                                            const response = await fetch(
+                                                `${process.env.NEXT_PUBLIC_API_URL}/api/channels/members/`,
+                                                {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                    },
+                                                    body: JSON.stringify({
+                                                        channel_id: channel.id,
+                                                        user_id: userId,
+                                                    }),
+                                                }
+                                            );
+
+                                            if (!response.ok) {
+                                                const errorData = await response.json().catch(() => ({}));
+                                                throw new Error(errorData.detail || errorData.message || 'Error al agregar usuario');
+                                            }
+
+                                            setAlert({ type: 'success', message: `Usuario ${userId} agregado exitosamente` });
+                                            input.value = '';
+                                            onChannelUpdated();
+                                        } catch (error) {
+                                            console.error('Error adding user:', error);
+                                            setAlert({
+                                                type: 'error',
+                                                message: error instanceof Error ? error.message : 'Error al agregar usuario',
+                                            });
+                                        }
+                                    }}
+                                    className="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors cursor-pointer"
+                                >
+                                    Agregar Usuario
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Members Section */}
                     <div className="border-t border-border pt-4">
                         <button
@@ -368,22 +439,74 @@ export function ChannelSettingsSidebar({
                                                 className="p-3 rounded-md bg-muted border border-border"
                                             >
                                                 <div className="flex items-center justify-between">
-                                                    <div>
+                                                    <div className="flex-1">
                                                         <p className="text-sm font-medium text-foreground">{member.id}</p>
                                                         <p className="text-xs text-muted-foreground">
                                                             Unido: {new Date(member.joined_at * 1000).toLocaleDateString()}
                                                         </p>
                                                     </div>
-                                                    <span
-                                                        className={`text-xs px-2 py-1 rounded ${member.status === 'normal'
-                                                            ? 'bg-success-soft text-fg-success-strong'
-                                                            : member.status === 'banned'
-                                                                ? 'bg-danger-soft text-fg-danger-strong'
-                                                                : 'bg-neutral-secondary-soft text-foreground'
-                                                            }`}
-                                                    >
-                                                        {member.status}
-                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span
+                                                            className={`text-xs px-2 py-1 rounded ${member.status === 'normal'
+                                                                ? 'bg-success-soft text-fg-success-strong'
+                                                                : member.status === 'banned'
+                                                                    ? 'bg-danger-soft text-fg-danger-strong'
+                                                                    : 'bg-neutral-secondary-soft text-foreground'
+                                                                }`}
+                                                        >
+                                                            {member.status}
+                                                        </span>
+                                                        {/* Delete button - Only for private channels and owners, but not for the channel owner */}
+                                                        {isOwner && channel.channel_type === 'private' && member.id !== channel.owner_id && (
+                                                            <button
+                                                                onClick={async () => {
+                                                                    // Confirmar eliminación
+                                                                    if (!confirm(`¿Estás seguro de que quieres eliminar al usuario ${member.id} del canal?`)) {
+                                                                        return;
+                                                                    }
+
+                                                                    try {
+                                                                        setAlert(null);
+                                                                        const response = await fetch(
+                                                                            `${process.env.NEXT_PUBLIC_API_URL}/api/channels/members/`,
+                                                                            {
+                                                                                method: 'DELETE',
+                                                                                headers: {
+                                                                                    'Content-Type': 'application/json',
+                                                                                },
+                                                                                body: JSON.stringify({
+                                                                                    channel_id: channel.id,
+                                                                                    user_id: member.id,
+                                                                                }),
+                                                                            }
+                                                                        );
+
+                                                                        if (!response.ok) {
+                                                                            const errorData = await response.json().catch(() => ({}));
+                                                                            throw new Error(errorData.detail || errorData.message || 'Error al eliminar usuario');
+                                                                        }
+
+                                                                        setAlert({ type: 'success', message: `Usuario ${member.id} eliminado exitosamente` });
+                                                                        // Recargar la lista de miembros
+                                                                        loadMembers(1);
+                                                                        onChannelUpdated();
+                                                                    } catch (error) {
+                                                                        console.error('Error removing user:', error);
+                                                                        setAlert({
+                                                                            type: 'error',
+                                                                            message: error instanceof Error ? error.message : 'Error al eliminar usuario',
+                                                                        });
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 hover:bg-danger-soft text-danger rounded-md transition-colors cursor-pointer"
+                                                                title="Eliminar usuario"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -401,6 +524,62 @@ export function ChannelSettingsSidebar({
                             </div>
                         )}
                     </div>
+
+                    {/* Leave Channel - Only for non-owners */}
+                    {!isOwner && (
+                        <div className="border-t border-border pt-4 space-y-2">
+                            <h3 className="text-sm font-medium text-foreground mb-2">Abandonar Canal</h3>
+                            <p className="text-xs text-muted-foreground mb-3">
+                                Si abandonas este canal, perderás acceso a todos sus mensajes y threads.
+                            </p>
+                            <button
+                                onClick={async () => {
+                                    // Confirmar salida
+                                    if (!confirm(`¿Estás seguro de que quieres abandonar el canal "${channel.name}"?`)) {
+                                        return;
+                                    }
+
+                                    try {
+                                        setAlert(null);
+                                        const response = await fetch(
+                                            `${process.env.NEXT_PUBLIC_API_URL}/api/channels/members/`,
+                                            {
+                                                method: 'DELETE',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                },
+                                                body: JSON.stringify({
+                                                    channel_id: channel.id,
+                                                    user_id: user.id,
+                                                }),
+                                            }
+                                        );
+
+                                        if (!response.ok) {
+                                            const errorData = await response.json().catch(() => ({}));
+                                            throw new Error(errorData.detail || errorData.message || 'Error al abandonar el canal');
+                                        }
+
+                                        setAlert({ type: 'success', message: 'Has abandonado el canal exitosamente' });
+                                        // Cerrar el sidebar y actualizar la lista de canales
+                                        setTimeout(() => {
+                                            onClose();
+                                            onChannelUpdated();
+                                        }, 1500);
+                                    } catch (error) {
+                                        console.error('Error leaving channel:', error);
+                                        setAlert({
+                                            type: 'error',
+                                            message: error instanceof Error ? error.message : 'Error al abandonar el canal',
+                                        });
+                                    }
+                                }}
+                                className="w-full px-4 py-2 bg-warning text-white rounded-md hover:bg-warning/90 transition-colors cursor-pointer font-medium"
+                            >
+                                Abandonar Canal
+                            </button>
+                        </div>
+                    )}
 
                     {/* Danger Zone */}
                     {isOwner && (

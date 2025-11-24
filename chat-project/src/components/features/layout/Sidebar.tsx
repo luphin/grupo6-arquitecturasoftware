@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useState } from 'react';
 import { Channel, Thread } from '@/types';
 import { ChannelAccordion } from '../channels/ChannelAccordion';
 import { ChannelSearch } from '../channels/ChannelSearch';
@@ -8,6 +9,7 @@ import { ProfileView } from './ProfileView';
 import { SettingsView } from './SettingsView';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/AuthContext';
+import { FiFolderPlus } from "react-icons/fi";
 
 
 // 1. DEFINICIÓN DE LOS BOTS
@@ -101,10 +103,62 @@ export function Sidebar({
   onChannelSettingsOpen,
 }: SidebarProps) {
   const { user } = useAuth();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [channelName, setChannelName] = useState('');
+  const [channelType, setChannelType] = useState<'public' | 'private'>('public');
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   if (!user) {
     return null;
   }
+
+  const handleCreateChannel = async () => {
+    if (!channelName.trim()) {
+      setCreateError('Por favor ingresa un nombre para el canal');
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      setCreateError(null);
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/channels/channels/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            channel_type: channelType,
+            name: channelName.trim(),
+            owner_id: user.id,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || 'Error al crear el canal');
+      }
+
+      // Éxito
+      setShowCreateModal(false);
+      setChannelName('');
+      setChannelType('public');
+
+      // Refrescar la lista de canales
+      if (onChannelJoined) {
+        onChannelJoined();
+      }
+    } catch (error) {
+      console.error('Error creating channel:', error);
+      setCreateError(error instanceof Error ? error.message : 'Error al crear el canal');
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   const renderContent = () => {
     switch (selectedView) {
@@ -112,7 +166,16 @@ export function Sidebar({
         return (
           <>
             <div className="p-4 pb-0">
-              <h2 className="text-lg font-bold text-muted-foreground">Canales</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-muted-foreground">Canales</h2>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="p-2 hover:bg-muted rounded-md transition-colors cursor-pointer"
+                  title="Crear nuevo canal"
+                >
+                  <FiFolderPlus className="w-5 h-5 text-foreground" />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2">
               <ChannelAccordion
@@ -130,8 +193,6 @@ export function Sidebar({
         return (
           <ChannelSearch
             onChannelSelect={(channelId, channelName) => {
-              // ChannelSearch selecciona canales, no threads
-              // Por ahora, no hacemos nada o podrías navegar al canal
               console.log('Canal seleccionado:', channelId, channelName);
             }}
             user={user}
@@ -164,11 +225,134 @@ export function Sidebar({
   };
 
   return (
-    <aside
-      style={{ width: `${SIDEBAR_WIDTH}px` }}
-      className="bg-background border-r border-border flex flex-col"
-    >
-      {renderContent()}
-    </aside>
+    <>
+      <aside
+        style={{ width: `${SIDEBAR_WIDTH}px` }}
+        className="bg-background border-r border-border flex flex-col"
+      >
+        {renderContent()}
+      </aside>
+
+      {/* Create Channel Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => {
+              setShowCreateModal(false);
+              setChannelName('');
+              setCreateError(null);
+            }}
+          />
+          <div className="relative w-full max-w-lg max-h-full mx-4">
+            {/* Modal content */}
+            <div className="relative bg-background border border-border rounded-lg shadow-xl p-4 md:p-6">
+              {/* Modal header */}
+              <div className="flex items-center justify-between border-b border-border pb-4 md:pb-5">
+                <h3 className="text-lg font-medium text-foreground">
+                  Crear Nuevo Canal
+                </h3>
+                <button
+                  type="button"
+                  className="text-muted-foreground bg-transparent hover:bg-muted hover:text-foreground rounded-md text-sm w-9 h-9 ms-auto inline-flex justify-center items-center transition-colors"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setChannelName('');
+                    setCreateError(null);
+                  }}
+                >
+                  <svg
+                    className="w-5 h-5"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18 17.94 6M18 18 6.06 6"
+                    />
+                  </svg>
+                  <span className="sr-only">Close modal</span>
+                </button>
+              </div>
+
+              {/* Modal body */}
+              <div className="space-y-4 md:space-y-6 py-4 md:py-6">
+                {createError && (
+                  <div className="p-3 rounded-md bg-danger-soft text-fg-danger-strong text-sm">
+                    {createError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Nombre del Canal
+                  </label>
+                  <input
+                    type="text"
+                    value={channelName}
+                    onChange={(e) => setChannelName(e.target.value)}
+                    placeholder="Ingresa el nombre del canal"
+                    className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-3">
+                    Tipo de Canal
+                  </label>
+                  <label className="inline-flex items-center cursor-pointer">
+                    <span className="select-none text-sm font-medium text-foreground">
+                      Público
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={channelType === 'private'}
+                      onChange={(e) => setChannelType(e.target.checked ? 'private' : 'public')}
+                      className="sr-only peer"
+                    />
+                    <div className="relative mx-3 w-9 h-5 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-background after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                    <span className="select-none text-sm font-medium text-foreground">
+                      Privado
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Modal footer */}
+              <div className="flex items-center border-t border-border space-x-4 pt-4 md:pt-5">
+                <button
+                  onClick={handleCreateChannel}
+                  disabled={isCreating}
+                  type="button"
+                  className="text-white bg-primary box-border border border-transparent hover:bg-primary/90 focus:ring-4 focus:ring-primary/20 shadow-sm font-medium leading-5 rounded-md text-sm px-4 py-2.5 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isCreating ? 'Creando...' : 'Crear Canal'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setChannelName('');
+                    setCreateError(null);
+                  }}
+                  disabled={isCreating}
+                  type="button"
+                  className="text-foreground bg-muted box-border border border-border hover:bg-muted/80 hover:text-foreground focus:ring-4 focus:ring-muted shadow-sm font-medium leading-5 rounded-md text-sm px-4 py-2.5 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
