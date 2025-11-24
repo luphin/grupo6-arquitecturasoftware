@@ -27,7 +27,7 @@ export function ThreadMessages({ thread }: ThreadMessagesProps) {
   const loadMessages = async (cursor?: string) => {
     try {
       setLoading(true);
-      const response: MessagesResponse = await messagesApi.getThreadMessages(thread.thread_id, cursor);
+      const response: MessagesResponse = await messagesApi.getThreadMessages(thread.uuid, cursor);
 
       if (cursor) {
         // Cargar más mensajes (append)
@@ -55,7 +55,7 @@ export function ThreadMessages({ thread }: ThreadMessagesProps) {
     try {
       setSending(true);
       const newMessage = await messagesApi.sendMessage(
-        thread.thread_id,
+        thread.uuid,
         user.id,
         content,
         'text'

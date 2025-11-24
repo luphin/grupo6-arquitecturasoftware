@@ -224,8 +224,8 @@ export const messagesApi = {
   /**
    * Obtener mensajes de un thread
    */
-  getThreadMessages: async (threadId: string, cursor?: string): Promise<MessagesResponse> => {
-    return apiRequest(`/api/messages/threads/${threadId}/messages`, {
+  getThreadMessages: async (uuid: string, cursor?: string): Promise<MessagesResponse> => {
+    return apiRequest(`/api/messages/threads/${uuid}/messages`, {
       method: 'GET',
       params: cursor ? { cursor } : undefined,
     });
@@ -235,13 +235,13 @@ export const messagesApi = {
    * Enviar mensaje a un thread
    */
   sendMessage: async (
-    threadId: string,
+    uuid: string,
     userId: string,
     content: string,
     type: 'text' | 'audio' | 'file' = 'text',
     paths?: string[]
   ): Promise<Message> => {
-    return apiRequest(`/api/messages/threads/${threadId}/messages`, {
+    return apiRequest(`/api/messages/threads/${uuid}/messages`, {
       method: 'POST',
       headers: {
         'X-User-Id': userId,
