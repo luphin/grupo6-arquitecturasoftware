@@ -16,13 +16,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Solo verificar si hay token guardado
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      // Aquí podrías hacer una validación del token si quieres
-      // Por ahora solo marcamos como no loading
-    }
-    setIsLoading(false);
+    const restoreSession = async () => {
+      const token = localStorage.getItem('auth_token');
+
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        console.log('[AUTH] Restaurando sesión...');
+
+        // Obtener datos del usuario con el token guardado
+        const meUrl = `${API_GATEWAY_URL}/api/users/users/me`;
+        const meResponse = await fetch(meUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!meResponse.ok) {
+          // Token inválido o expirado, limpiar
+          console.warn('[AUTH] Token inválido, limpiando sesión');
+          localStorage.removeItem('auth_token');
+          setIsLoading(false);
+          return;
+        }
+
+        const userData = await meResponse.json();
+        console.log('[AUTH] Sesión restaurada:', userData);
+
+        const authenticatedUser: User = {
+          id: userData.id,
+          username: userData.username,
+          email: userData.email,
+          full_name: userData.full_name,
+          is_active: userData.is_active,
+          status: 'online',
+        };
+
+        setUser(authenticatedUser);
+
+        // Actualizar presencia a online
+        await updatePresence(authenticatedUser.id, 'online', token);
+
+        console.log('[AUTH] ✅ Sesión restaurada exitosamente');
+      } catch (error) {
+        console.error('[AUTH] Error restaurando sesión:', error);
+        localStorage.removeItem('auth_token');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    restoreSession();
   }, []);
 
   const login = async (email: string, password: string) => {

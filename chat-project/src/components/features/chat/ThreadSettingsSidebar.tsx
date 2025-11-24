@@ -227,6 +227,12 @@ export function ThreadSettingsSidebar({
                             <p className="text-foreground text-sm font-mono break-all">{thread.thread_id}</p>
                         </div>
 
+                        <div>
+                            <label className="block text-sm font-medium text-foreground mb-2">
+                                UUID del Hilo
+                            </label>
+                            <p className="text-foreground text-sm font-mono break-all">{thread.uuid}</p>
+                        </div>
                         {/* Edit/Save Buttons */}
                         <div className="flex gap-2">
                             {isEditing ? (
