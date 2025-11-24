@@ -12,6 +12,9 @@ interface ThreadMessagesProps {
   thread: Thread;
 }
 
+// URL base de la API (usar variable de entorno o fallback)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export function ThreadMessages({ thread }: ThreadMessagesProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +29,13 @@ export function ThreadMessages({ thread }: ThreadMessagesProps) {
   }, [thread.thread_id]);
 
   const loadMessages = async (cursor?: string) => {
+    // Evitar cargar mensajes si es un bot (para prevenir error 422)
+    if (thread.thread_id.startsWith('bot-')) {
+        setMessages([]);
+        setLoading(false);
+        return;
+    }
+
     try {
       setLoading(true);
       const response: MessagesResponse = await messagesApi.getThreadMessages(thread.uuid, cursor);
@@ -55,6 +65,52 @@ export function ThreadMessages({ thread }: ThreadMessagesProps) {
 
     try {
       setSending(true);
+
+      // 1. 🛡️ LLAMADA AL SERVICIO DE MODERACIÓN
+      const moderationResponse = await fetch(`${API_BASE_URL}/api/moderation/moderation/check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: content,
+          channel_id: thread.channel_id, 
+          message_id: `temp-${Date.now()}`, 
+          user_id: user.id,
+          metadata: {
+            thread_id: thread.thread_id,
+            timestamp: new Date().toISOString()
+          }
+        }),
+      });
+
+      if (!moderationResponse.ok) {
+        throw new Error('Error al conectar con el servicio de moderación');
+      }
+
+      const moderationData = await moderationResponse.json();
+
+// 2. 🚨 VERIFICAR SI FUE APROBADO
+      if (moderationData.is_approved === false) {
+        // Crear mensaje de sistema con la advertencia
+        const warningMessage = {
+          id: `sys-${Date.now()}`,
+          content: `⚠️ Mensaje bloqueado por moderación: ${moderationData.message}`,
+          
+          // ✅ CORRECCIÓN: Usar las propiedades correctas de tu tipo Message
+          user_id: 'system', // Antes decía sender_id
+          username: 'Moderador', // Antes decía sender_name (asumiendo que usas username)
+          
+          created_at: new Date().toISOString(),
+          thread_id: thread.uuid,
+          content_type: 'text',
+          is_edited: false,
+          reactions: []
+        } as unknown as Message;
+        
+        setMessages(prev => [...prev, warningMessage]);
+        return; 
+      }
+
+      // 3. ✅ CASO APROBADO: Enviar mensaje real a la API
       const newMessage = await messagesApi.sendMessage(
         thread.uuid,
         user.id,
@@ -64,9 +120,10 @@ export function ThreadMessages({ thread }: ThreadMessagesProps) {
 
       // Agregar el nuevo mensaje a la lista
       setMessages(prev => [...prev, newMessage]);
+
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Error al enviar el mensaje. Por favor intenta de nuevo.');
+      alert('Error al procesar el mensaje. Por favor intenta de nuevo.');
     } finally {
       setSending(false);
     }
