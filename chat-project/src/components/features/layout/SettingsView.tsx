@@ -13,7 +13,7 @@ export function SettingsView({ onLogout }: SettingsViewProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-border">
+      <div className="p-4 ">
         <h2 className="text-lg font-bold text-foreground">Configuración</h2>
       </div>
 

@@ -188,7 +188,7 @@ export function ChannelSearch({ onChannelSelect, user, onChannelJoined }: Channe
   return (
     <div className="flex flex-col h-full relative">
       {/* Search Input */}
-      <div className="p-4 border-b border-border">
+      <div className="p-4">
         <input
           type="text"
           placeholder="Buscar canales..."

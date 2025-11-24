@@ -213,7 +213,7 @@ export function ChatbotWindow({ botId, botName }: ChatbotWindowProps) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={`Mensaje a ${botName}...`}
-            className="flex-1 bg-gray-50 border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            className="flex-1 bg-gray-50 border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-black"
             disabled={isLoading}
           />
           <Button type="submit" disabled={!inputValue.trim() || isLoading} size="sm">

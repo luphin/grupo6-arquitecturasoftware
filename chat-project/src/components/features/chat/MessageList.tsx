@@ -5,6 +5,7 @@ import { MessageSkeleton } from '@/components/ui/Skeleton';
 
 interface MessageListProps {
   messages: Message[];
+  currentUserId: string;
   isLoading?: boolean;
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
@@ -12,6 +13,7 @@ interface MessageListProps {
 
 export function MessageList({
   messages,
+  currentUserId,
   isLoading = false,
   onEdit,
   onDelete,
@@ -50,6 +52,7 @@ export function MessageList({
           <MessageItem
             key={message.id}
             message={message}
+            currentUserId={currentUserId}
             onEdit={onEdit}
             onDelete={onDelete}
           />

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ChannelHeader } from '@/components/features/channels/ChannelHeader';
 import { MessageList } from '@/components/features/chat/MessageList';
 import { ChatInput } from '@/components/features/chat/ChatInput';
+import { useAuth } from '@/lib/AuthContext';
 
 // TODO: Mock data - esto se reemplazara con datos reales de la API
 const mockChannel = {
@@ -42,6 +43,7 @@ export default function ChannelPage({
 }: {
   params: { channelId: string };
 }) {
+  const { user } = useAuth();
   const [messages, setMessages] = useState(mockMessages);
 
   const handleSendMessage = (content: string) => {
@@ -51,7 +53,7 @@ export default function ChannelPage({
     const newMessage = {
       id: String(messages.length + 1),
       thread_id: '1',
-      user_id: '1',
+      user_id: user?.id || '1',
       content,
       type: 'text' as const,
       created_at: new Date().toISOString(),
@@ -61,11 +63,20 @@ export default function ChannelPage({
     setMessages([...messages, newMessage]);
   };
 
+  if (!user) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-foreground">Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col">
       <ChannelHeader channel={mockChannel} />
       <MessageList
         messages={messages}
+        currentUserId={user.id}
         onEdit={(id) => console.log('Edit message:', id)}
         onDelete={(id) => console.log('Delete message:', id)}
       />
