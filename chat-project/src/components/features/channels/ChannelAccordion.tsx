@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { Channel, Thread, User } from '@/types';
 import { channelsApi } from '@/lib/api';
+import { GrChatOption } from "react-icons/gr";
 
 interface ChannelAccordionProps {
   channels: Channel[];
-  onThreadSelect: (threadId: string, threadName: string) => void;
+  onThreadSelect: (thread: Thread) => void;
   selectedThreadId?: string;
   user: User;
   onChannelUpdated?: () => void;
@@ -40,6 +41,9 @@ export function ChannelAccordion({
         setLoadingThreads(prev => ({ ...prev, [channelId]: true }));
         try {
           const channelThreads = await channelsApi.getChannelThreads(channelId);
+          console.log('🔍 Threads cargados para canal', channelId, ':', channelThreads);
+          console.log('🔍 Primer thread:', channelThreads[0]);
+          console.log('🔍 Nombre del primer thread:', channelThreads[0]?.thread_name);
           setThreads(prev => ({ ...prev, [channelId]: channelThreads }));
         } catch (error) {
           console.error('Error loading threads:', error);
@@ -71,7 +75,7 @@ export function ChannelAccordion({
       setCreatingThreadForChannel(null);
 
       // Seleccionar el nuevo thread
-      onThreadSelect(newThread.thread_id, newThread.thread_name);
+      onThreadSelect(newThread);
     } catch (error) {
       console.error('Error creating thread:', error);
       alert('Error al crear el chat. Por favor intenta de nuevo.');
@@ -94,11 +98,22 @@ export function ChannelAccordion({
               >
                 <div className='flex flex-row items-center'>
                   {/* Settings Icon */}
-                  <button
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (onChannelSettingsOpen) {
                         onChannelSettingsOpen(channel);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (onChannelSettingsOpen) {
+                          onChannelSettingsOpen(channel);
+                        }
                       }
                     }}
                     className="p-2 hover:bg-muted rounded-md transition-colors cursor-pointer"
@@ -123,7 +138,7 @@ export function ChannelAccordion({
                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                       />
                     </svg>
-                  </button>
+                  </div>
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-2">
                       <span className="text-lg text-foreground">#</span>
@@ -230,14 +245,14 @@ export function ChannelAccordion({
                         {threads[channel.id].map((thread) => (
                           <button
                             key={thread.thread_id}
-                            onClick={() => onThreadSelect(thread.thread_id, thread.thread_name)}
+                            onClick={() => onThreadSelect(thread)}
                             className={`w-full text-left px-3 py-2 rounded-md transition-colors cursor-pointer ${selectedThreadId === thread.thread_id
                               ? 'bg-muted'
                               : 'hover:bg-muted'
                               }`}
                           >
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-foreground">💬</span>
+                            <div className="flex flex-row items-center gap-2">
+                              <span className="text-sm text-foreground"><GrChatOption /></span>
                               <span
                                 className={`text-sm ${selectedThreadId === thread.thread_id ? 'font-medium' : ''
                                   } text-foreground`}

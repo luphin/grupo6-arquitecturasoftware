@@ -4,7 +4,7 @@
 
 import { Channel, Thread, Message, MessagesResponse } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface ApiOptions extends RequestInit {
   params?: Record<string, string>;
@@ -26,20 +26,83 @@ async function apiRequest<T>(
     url += `?${searchParams.toString()}`;
   }
 
-  const response = await fetch(url, {
-    ...fetchOptions,
-    headers: {
-      'Content-Type': 'application/json',
-      ...fetchOptions.headers,
-    },
-  });
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      headers: {
+        'Content-Type': 'application/json',
+        ...fetchOptions.headers,
+      },
+    });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-    throw new Error(error.message || `HTTP ${response.status}`);
+    if (!response.ok) {
+      // Intentar obtener el mensaje de error del servidor
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      let errorDetails = null;
+
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        errorDetails = errorData;
+      } catch (parseError) {
+        // Si no se puede parsear como JSON, intentar obtener el texto
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            errorMessage = `${errorMessage} - ${errorText.substring(0, 200)}`;
+          }
+        } catch (textError) {
+          // Ignorar si no se puede obtener el texto
+        }
+      }
+
+      // Crear un error más descriptivo
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      (error as any).statusText = response.statusText;
+      (error as any).endpoint = endpoint;
+      (error as any).details = errorDetails;
+
+      console.error('API Request Error:', {
+        endpoint,
+        status: response.status,
+        statusText: response.statusText,
+        message: errorMessage,
+        details: errorDetails,
+      });
+
+      throw error;
+    }
+
+    // Intentar parsear la respuesta como JSON
+    try {
+      return await response.json();
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', {
+        endpoint,
+        parseError,
+      });
+      throw new Error(`Failed to parse response from ${endpoint}`);
+    }
+  } catch (error) {
+    // Manejar errores de red (fetch failed)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      const networkError = new Error(
+        `Network error: Unable to connect to ${API_BASE_URL}. Please check your connection.`
+      );
+      (networkError as any).endpoint = endpoint;
+      (networkError as any).originalError = error;
+      console.error('Network Error:', {
+        endpoint,
+        baseUrl: API_BASE_URL,
+        originalError: error,
+      });
+      throw networkError;
+    }
+
+    // Re-lanzar otros errores
+    throw error;
   }
-
-  return response.json();
 }
 
 // ============================================
@@ -120,24 +183,34 @@ export const channelsApi = {
    * Obtener threads de un canal
    */
   getChannelThreads: async (channelId: string): Promise<Thread[]> => {
-    return apiRequest(`/api/threads/channel/get_threads?channel_id=${channelId}`, {
+    const response = await apiRequest<any[]>(`/api/threads/channel/get_threads?channel_id=${channelId}`, {
       method: 'GET',
     });
+
+    // Mapear la respuesta del backend al formato esperado por el frontend
+    return response.map((thread: any) => ({
+      thread_id: thread.thread_id,
+      thread_name: thread.title || thread.thread_name, // Usar 'title' del backend
+      thread_created_by: thread.created_by || thread.thread_created_by,
+      channel_id: thread.channel_id,
+    }));
   },
 
   /**
    * Crear un nuevo thread en un canal
    */
   createThread: async (channelId: string, title: string, createdBy: string, metadata?: Record<string, any>): Promise<Thread> => {
-    return apiRequest(`/api/threads/threads/?channel_id=${channelId}&thread_name=${title}&user_id=${createdBy}`, {
+    const response = await apiRequest<any>(`/api/threads/threads/threads/?channel_id=${channelId}&thread_name=${title}&user_id=${createdBy}`, {
       method: 'POST',
-      body: JSON.stringify({
-        channel_id: channelId,
-        title,
-        created_by: createdBy,
-        metadata: metadata || {},
-      }),
     });
+
+    // Mapear la respuesta del backend al formato esperado por el frontend
+    return {
+      thread_id: response.thread_id,
+      thread_name: response.title || response.thread_name,
+      thread_created_by: response.created_by || response.thread_created_by || createdBy,
+      channel_id: response.channel_id || channelId,
+    };
   },
 };
 
@@ -159,10 +232,23 @@ export const messagesApi = {
   /**
    * Enviar mensaje a un thread
    */
-  sendMessage: async (threadId: string, content: string): Promise<Message> => {
+  sendMessage: async (
+    threadId: string,
+    userId: string,
+    content: string,
+    type: 'text' | 'audio' | 'file' = 'text',
+    paths?: string[]
+  ): Promise<Message> => {
     return apiRequest(`/api/messages/threads/${threadId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ content, type: 'text' }),
+      headers: {
+        'X-User-Id': userId,
+      },
+      body: JSON.stringify({
+        content,
+        type,
+        paths: paths || []
+      }),
     });
   },
 };

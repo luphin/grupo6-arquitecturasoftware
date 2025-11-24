@@ -206,7 +206,7 @@ export function ChannelSettingsSidebar({
 
     return (
         <>
-            <div className="w-96 bg-background border-l border-border shadow-xl flex flex-col h-full">
+            <div className="w-96 bg-background border-l border-border  flex flex-col h-full">
                 {/* Header */}
                 <div className="p-4 border-b border-border flex items-center justify-between">
                     <h2 className="text-lg font-bold text-foreground">Configuración del Canal</h2>
@@ -214,7 +214,7 @@ export function ChannelSettingsSidebar({
                         onClick={onClose}
                         className="p-2 hover:bg-muted rounded-md transition-colors cursor-pointer"
                     >
-                        <svg className="w-5 h-5 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -225,14 +225,16 @@ export function ChannelSettingsSidebar({
                     {/* Alert */}
                     {alert && (
                         <div
-                            className={`p-4 rounded-md ${alert.type === 'success'
-                                ? 'bg-success-soft border border-success-subtle text-fg-success-strong'
+                            className={`p-4 rounded-md text-white font-bold ${alert.type === 'success'
+                                ? 'bg-success'
                                 : alert.type === 'error'
-                                    ? 'bg-danger-soft border border-danger-subtle text-fg-danger-strong'
-                                    : 'bg-neutral-secondary-soft border border-default text-foreground'
+                                    ? 'bg-danger'
+                                    : alert.type === 'warning'
+                                        ? 'bg-warning'
+                                        : 'bg-muted text-foreground'
                                 }`}
                         >
-                            <p className="text-sm">{alert.message}</p>
+                            <p className="text-sm font-medium">{alert.message}</p>
                         </div>
                     )}
 

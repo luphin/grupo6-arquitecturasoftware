@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation';
 import { NavigationSidebar } from '@/components/features/layout/NavigationSidebar';
 import { Sidebar } from '@/components/features/layout/Sidebar';
 import { ChannelSettingsSidebar } from '@/components/features/channels/ChannelSettingsSidebar';
+import { ThreadSettingsSidebar } from '@/components/features/chat/ThreadSettingsSidebar';
 import { useAuth } from '@/lib/AuthContext';
-import { Channel } from '@/types';
+import { Channel, Thread } from '@/types';
 import { channelsApi } from '@/lib/api';
 
 // Context para compartir el thread seleccionado entre Sidebar y las páginas
 interface ChatContextType {
-  selectedThread: { id: string; name: string } | null;
-  setSelectedThread: (thread: { id: string; name: string } | null) => void;
+  selectedThread: Thread | null;
+  setSelectedThread: (thread: Thread | null) => void;
+  onThreadSettingsOpen?: (thread: Thread) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -32,12 +34,14 @@ export default function ChatLayout({
 }) {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedThread, setSelectedThread] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-  const [selectedView, setSelectedView] = useState<'channels' | 'search' | 'profile' | 'settings'>('channels');
+  const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
+  const [selectedView, setSelectedView] = useState<'channels' | 'search' | 'profile' | 'settings' | 'chatbots'>('channels');
+
+  // Estado unificado para el settings sidebar
+  const [settingsSidebarType, setSettingsSidebarType] = useState<'channel' | 'thread' | null>(null);
   const [selectedChannelForSettings, setSelectedChannelForSettings] = useState<Channel | null>(null);
+  const [selectedThreadForSettings, setSelectedThreadForSettings] = useState<Thread | null>(null);
+
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
 
@@ -68,12 +72,30 @@ export default function ChatLayout({
     }
   };
 
-  const handleThreadSelect = (threadId: string, threadName: string) => {
-    setSelectedThread({ id: threadId, name: threadName });
+  const handleThreadSelect = (thread: Thread) => {
+    setSelectedThread(thread);
   };
 
-  const handleViewChange = (view: 'channels' | 'search' | 'profile' | 'settings') => {
+  const handleViewChange = (view: 'channels' | 'search' | 'profile' | 'settings' | 'chatbots') => {
     setSelectedView(view);
+  };
+
+  const handleChannelSettingsOpen = (channel: Channel) => {
+    setSettingsSidebarType('channel');
+    setSelectedChannelForSettings(channel);
+    setSelectedThreadForSettings(null);
+  };
+
+  const handleThreadSettingsOpen = (thread: Thread) => {
+    setSettingsSidebarType('thread');
+    setSelectedThreadForSettings(thread);
+    setSelectedChannelForSettings(null);
+  };
+
+  const handleSettingsSidebarClose = () => {
+    setSettingsSidebarType(null);
+    setSelectedChannelForSettings(null);
+    setSelectedThreadForSettings(null);
   };
 
   // Show loading state while checking authentication
@@ -101,26 +123,47 @@ export default function ChatLayout({
           />
           <Sidebar
             channels={channels}
-            selectedThreadId={selectedThread?.id}
+            selectedThreadId={selectedThread?.thread_id}
             onThreadSelect={handleThreadSelect}
             onCreateChannel={() => console.log('Create channel')}
             selectedView={selectedView}
             onLogout={logout}
             onChannelJoined={loadChannels}
-            onChannelSettingsOpen={setSelectedChannelForSettings}
+            onChannelSettingsOpen={handleChannelSettingsOpen}
           />
           <main className="flex-1 flex flex-col overflow-hidden">
-            {children}
+            <ChatContext.Provider value={{
+              selectedThread,
+              setSelectedThread,
+              onThreadSettingsOpen: handleThreadSettingsOpen
+            } as any}>
+              {children}
+            </ChatContext.Provider>
           </main>
-          {selectedChannelForSettings && (
+
+          {/* Settings Sidebar unificado */}
+          {settingsSidebarType === 'channel' && selectedChannelForSettings && (
             <ChannelSettingsSidebar
               channel={selectedChannelForSettings}
               user={user}
-              isOpen={!!selectedChannelForSettings}
-              onClose={() => setSelectedChannelForSettings(null)}
+              isOpen={true}
+              onClose={handleSettingsSidebarClose}
               onChannelUpdated={() => {
-                setSelectedChannelForSettings(null);
+                handleSettingsSidebarClose();
                 loadChannels();
+              }}
+            />
+          )}
+
+          {settingsSidebarType === 'thread' && selectedThreadForSettings && (
+            <ThreadSettingsSidebar
+              thread={selectedThreadForSettings}
+              user={user}
+              isOpen={true}
+              onClose={handleSettingsSidebarClose}
+              onThreadUpdated={() => {
+                handleSettingsSidebarClose();
+                // Opcionalmente recargar mensajes o threads
               }}
             />
           )}

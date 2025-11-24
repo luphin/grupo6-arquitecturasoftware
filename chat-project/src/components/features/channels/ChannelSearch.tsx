@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Channel, User } from '@/types';
+import { FiLock, FiGlobe } from "react-icons/fi";
 
 interface ChannelSearchProps {
   onChannelSelect: (channelId: string, channelName: string) => void;
@@ -75,6 +76,15 @@ export function ChannelSearch({ onChannelSelect, user, onChannelJoined }: Channe
   // --- Lógica de Unirse al Canal ---
 
   const handleOpenModal = (channel: Channel) => {
+    // No permitir abrir modal para canales privados
+    if (channel.channel_type === 'private') {
+      setAlert({
+        type: 'warning',
+        message: 'Este canal es privado. Solo puedes unirte por invitación.'
+      });
+      return;
+    }
+
     setAlert(null); // Limpiar alertas previas
     setSelectedChannel(channel);
   };
@@ -192,17 +202,26 @@ export function ChannelSearch({ onChannelSelect, user, onChannelJoined }: Channe
       {alert && (
         <div className="p-4">
           {alert.type === 'success' && (
-            <div className="flex items-start sm:items-center p-4 mb-4 text-sm text-fg-success-strong rounded-base bg-success-soft border border-success-subtle" role="alert">
+            <div className="flex items-start sm:items-center p-4 mb-4 text-sm text-white rounded-base bg-success font-bold" role="alert">
               <svg className="w-4 h-4 me-2 shrink-0 mt-0.5 sm:mt-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
               <p><span className="font-medium me-1">Éxito!</span> Te has unido al canal correctamente.</p>
             </div>
           )}
           {alert.type === 'error' && (
-            <div className="flex items-start sm:items-center p-4 mb-4 text-sm text-fg-danger-strong rounded-base bg-danger-soft border border-danger-subtle" role="alert">
+            <div className="flex items-start sm:items-center p-4 mb-4 text-sm text-white rounded-base bg-danger font-bold" role="alert">
               <svg className="w-4 h-4 me-2 shrink-0 mt-0.5 sm:mt-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
               <p>
                 <span className="font-medium me-1">Error!</span>
                 {alert.message || "No se pudo unir al canal. Inténtalo de nuevo."}
+              </p>
+            </div>
+          )}
+          {alert.type === 'warning' && (
+            <div className="flex items-start sm:items-center p-4 mb-4 text-sm text-white rounded-base bg-warning font-bold" role="alert">
+              <svg className="w-4 h-4 me-2 shrink-0 mt-0.5 sm:mt-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+              <p>
+                <span className="font-medium me-1">Advertencia!</span>
+                {alert.message}
               </p>
             </div>
           )}
@@ -222,21 +241,39 @@ export function ChannelSearch({ onChannelSelect, user, onChannelJoined }: Channe
           </div>
         ) : (
           <div className="space-y-1">
-            {filteredChannels.map((channel) => (
-              <button
-                key={channel.id}
-                onClick={() => handleOpenModal(channel)}
-                className="w-full text-left px-3 py-2 rounded-md transition-colors cursor-pointer hover:bg-muted"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg text-foreground">#</span>
-                  <span className="font-medium text-foreground">{channel.name}</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {channel.user_count} miembro{channel.user_count !== 1 ? 's' : ''}
-                </p>
-              </button>
-            ))}
+            {filteredChannels.map((channel) => {
+              const isPrivate = channel.channel_type === 'private';
+
+              return (
+                <button
+                  key={channel.id}
+                  onClick={() => handleOpenModal(channel)}
+                  disabled={isPrivate}
+                  title={`Propietario: ${channel.owner_id}`}
+                  className={`w-full text-left px-3 py-2 rounded-md transition-colors ${isPrivate
+                      ? 'cursor-not-allowed opacity-60'
+                      : 'cursor-pointer hover:bg-muted'
+                    }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {isPrivate ? (
+                      <FiLock className="text-lg text-muted-foreground" />
+                    ) : (
+                      <FiGlobe className="text-lg text-foreground" />
+                    )}
+                    <span className="font-medium text-foreground">{channel.name}</span>
+                    {isPrivate && (
+                      <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
+                        Privado
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 ml-7">
+                    {channel.user_count} miembro{channel.user_count !== 1 ? 's' : ''}
+                  </p>
+                </button>
+              );
+            })}
           </div>
         )}
 
