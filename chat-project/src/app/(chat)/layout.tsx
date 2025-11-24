@@ -6,11 +6,12 @@ import { NavigationSidebar } from '@/components/features/layout/NavigationSideba
 import { Sidebar } from '@/components/features/layout/Sidebar';
 import { ChannelSettingsSidebar } from '@/components/features/channels/ChannelSettingsSidebar';
 import { ThreadSettingsSidebar } from '@/components/features/chat/ThreadSettingsSidebar';
+// 1. IMPORTACIÓN
+import { ChatbotWindow } from '@/components/features/chatbots/ChatbotWindow';
 import { useAuth } from '@/lib/AuthContext';
 import { Channel, Thread } from '@/types';
 import { channelsApi } from '@/lib/api';
 
-// Context para compartir el thread seleccionado entre Sidebar y las páginas
 interface ChatContextType {
   selectedThread: Thread | null;
   setSelectedThread: (thread: Thread | null) => void;
@@ -34,7 +35,11 @@ export default function ChatLayout({
 }) {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Estados de selección separados para evitar conflictos de API
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
+  const [activeBot, setActiveBot] = useState<{id: string, name: string} | null>(null);
+
   const [selectedView, setSelectedView] = useState<'channels' | 'search' | 'profile' | 'settings' | 'chatbots'>('channels');
 
   // Estado unificado para el settings sidebar
@@ -46,7 +51,6 @@ export default function ChatLayout({
   const router = useRouter();
 
   useEffect(() => {
-    // If user is not authenticated, redirect to login
     if (!user && !isLoading) {
       router.push('/');
     }
@@ -60,7 +64,6 @@ export default function ChatLayout({
 
   const loadChannels = async () => {
     if (!user) return;
-
     try {
       setLoading(true);
       const userChannels = await channelsApi.getUserChannels(user.id);
@@ -72,8 +75,16 @@ export default function ChatLayout({
     }
   };
 
+  // 2. MANEJADORES DE SELECCIÓN (Lógica de Exclusión Mutua)
+  
   const handleThreadSelect = (thread: Thread) => {
-    setSelectedThread(thread);
+    setActiveBot(null);       // Desactivar bot
+    setSelectedThread(thread); // Activar hilo real
+  };
+
+  const handleBotSelect = (botId: string, botName: string) => {
+    setSelectedThread(null);  // Desactivar hilo real (Evita llamada a API y error 422)
+    setActiveBot({ id: botId, name: botName }); // Activar bot
   };
 
   const handleViewChange = (view: 'channels' | 'search' | 'profile' | 'settings' | 'chatbots') => {
@@ -98,7 +109,41 @@ export default function ChatLayout({
     setSelectedThreadForSettings(null);
   };
 
-  // Show loading state while checking authentication
+  // 3. RENDERIZADO PRINCIPAL
+  const renderMainContent = () => {
+    // CASO A: Vista de Chatbots
+    if (selectedView === 'chatbots') {
+      if (activeBot) {
+        return (
+          <ChatbotWindow 
+            botId={activeBot.id} 
+            botName={activeBot.name} 
+          />
+        );
+      }
+      return (
+        <div className="flex-1 flex items-center justify-center bg-gray-50 text-gray-400">
+          <div className="text-center">
+            <p>Selecciona un asistente IA para comenzar a conversar</p>
+          </div>
+        </div>
+      );
+    }
+
+    // CASO B: Vista Normal (Canales/Hilos)
+    // Solo renderizamos el contexto y children aquí.
+    // Al ser selectedThread = null cuando usas bots, el children no intentará cargar nada.
+    return (
+      <ChatContext.Provider value={{
+        selectedThread,
+        setSelectedThread,
+        onThreadSettingsOpen: handleThreadSettingsOpen
+      } as any}>
+        {children}
+      </ChatContext.Provider>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -107,68 +152,66 @@ export default function ChatLayout({
     );
   }
 
-  // Don't render if not authenticated
   if (!user) {
     return null;
   }
 
   return (
-    <ChatContext.Provider value={{ selectedThread, setSelectedThread }}>
-      <div className="h-screen flex flex-col">
-        <div className="flex-1 flex overflow-hidden">
-          <NavigationSidebar
+    <div className="h-screen flex flex-col">
+      <div className="flex-1 flex overflow-hidden">
+        <NavigationSidebar
+          user={user}
+          selectedView={selectedView}
+          onViewChange={handleViewChange}
+        />
+        <Sidebar
+          channels={channels}
+          selectedView={selectedView}
+          
+          // Props para Hilos Normales
+          selectedThreadId={selectedThread?.thread_id}
+          onThreadSelect={handleThreadSelect}
+          
+          // Props para Bots (Nuevas)
+          selectedBotId={activeBot?.id}
+          onBotSelect={handleBotSelect}
+
+          onCreateChannel={() => console.log('Create channel')}
+          onLogout={logout}
+          onChannelJoined={loadChannels}
+          onChannelSettingsOpen={handleChannelSettingsOpen}
+        />
+        
+        <main className="flex-1 flex flex-col overflow-hidden relative bg-white">
+          {renderMainContent()}
+        </main>
+
+        {/* Settings Sidebars */}
+        {settingsSidebarType === 'channel' && selectedChannelForSettings && (
+          <ChannelSettingsSidebar
+            channel={selectedChannelForSettings}
             user={user}
-            selectedView={selectedView}
-            onViewChange={handleViewChange}
+            isOpen={true}
+            onClose={handleSettingsSidebarClose}
+            onChannelUpdated={() => {
+              handleSettingsSidebarClose();
+              loadChannels();
+            }}
           />
-          <Sidebar
-            channels={channels}
-            selectedThreadId={selectedThread?.thread_id}
-            onThreadSelect={handleThreadSelect}
-            onCreateChannel={() => console.log('Create channel')}
-            selectedView={selectedView}
-            onLogout={logout}
-            onChannelJoined={loadChannels}
-            onChannelSettingsOpen={handleChannelSettingsOpen}
+        )}
+
+        {settingsSidebarType === 'thread' && selectedThreadForSettings && (
+          <ThreadSettingsSidebar
+            thread={selectedThreadForSettings}
+            user={user}
+            isOpen={true}
+            onClose={handleSettingsSidebarClose}
+            onThreadUpdated={() => {
+              handleSettingsSidebarClose();
+            }}
           />
-          <main className="flex-1 flex flex-col overflow-hidden">
-            <ChatContext.Provider value={{
-              selectedThread,
-              setSelectedThread,
-              onThreadSettingsOpen: handleThreadSettingsOpen
-            } as any}>
-              {children}
-            </ChatContext.Provider>
-          </main>
-
-          {/* Settings Sidebar unificado */}
-          {settingsSidebarType === 'channel' && selectedChannelForSettings && (
-            <ChannelSettingsSidebar
-              channel={selectedChannelForSettings}
-              user={user}
-              isOpen={true}
-              onClose={handleSettingsSidebarClose}
-              onChannelUpdated={() => {
-                handleSettingsSidebarClose();
-                loadChannels();
-              }}
-            />
-          )}
-
-          {settingsSidebarType === 'thread' && selectedThreadForSettings && (
-            <ThreadSettingsSidebar
-              thread={selectedThreadForSettings}
-              user={user}
-              isOpen={true}
-              onClose={handleSettingsSidebarClose}
-              onThreadUpdated={() => {
-                handleSettingsSidebarClose();
-                // Opcionalmente recargar mensajes o threads
-              }}
-            />
-          )}
-        </div>
+        )}
       </div>
-    </ChatContext.Provider>
+    </div>
   );
 }
