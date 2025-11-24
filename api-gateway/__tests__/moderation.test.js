@@ -25,7 +25,7 @@ describe('Servicio de Moderación', () => {
 
   beforeAll(() => {
     if (typeof app !== 'function' && (!app || typeof app.listen !== 'function')) {
-      console.error('❌ ERROR: La app no se importó correctamente.');
+      console.error('ERROR: La app no se importó correctamente.');
     }
   });
 
@@ -73,7 +73,7 @@ describe('Servicio de Moderación', () => {
       // === CAPTURAR ID PARA EL SIGUIENTE TEST ===
       if (response.body.data && response.body.data.id) {
           createdWordId = response.body.data.id;
-          console.log(`📝 Palabra creada con ID: ${createdWordId}`);
+          console.log(`Palabra creada con ID: ${createdWordId}`);
       } else if (response.body.id) {
           createdWordId = response.body.id;
       }
@@ -85,7 +85,7 @@ describe('Servicio de Moderación', () => {
     test('Debe eliminar la palabra creada anteriormente', async () => {
       // Si el POST falló, saltamos este test para evitar falsos positivos
       if (!createdWordId) {
-        console.warn('⚠️ SALTANDO DELETE: No hay ID (el POST probablemente falló).');
+        console.warn('SALTANDO DELETE: No hay ID (el POST probablemente falló).');
         return;
       }
 
