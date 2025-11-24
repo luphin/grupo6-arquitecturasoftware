@@ -36,6 +36,7 @@ export interface ChannelMember {
 // Thread Types
 export interface Thread {
   thread_id: string;
+  uuid: string;
   thread_name: string;
   thread_created_by: string;
   channel_id?: string;

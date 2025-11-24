@@ -1,28 +1,25 @@
 'use client';
 
-import React from 'react';
-import { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Channel, Thread } from '@/types';
 import { ChannelAccordion } from '../channels/ChannelAccordion';
 import { ChannelSearch } from '../channels/ChannelSearch';
 import { ProfileView } from './ProfileView';
 import { SettingsView } from './SettingsView';
-import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/AuthContext';
 import { FiFolderPlus } from "react-icons/fi";
 
-
 // 1. DEFINICIÓN DE LOS BOTS
 const AVAILABLE_BOTS = [
-  {
-    id: 'bot-wikipedia',
-    name: 'Wikipedia Chatbot',
+  { 
+    id: 'bot-wikipedia', 
+    name: 'Wikipedia Chatbot', 
     description: 'Ayuda con búsquedas',
     color: 'bg-blue-100 text-blue-600'
   },
-  {
-    id: 'bot-programacion',
-    name: 'Programación Chatbot',
+  { 
+    id: 'bot-programacion', 
+    name: 'Programación Chatbot', 
     description: 'Preguntas generales y ayuda',
     color: 'bg-green-100 text-green-600'
   }
@@ -39,30 +36,28 @@ const ChatbotsView = ({ onSelect, selectedId }: ChatbotsViewProps) => (
       <h2 className="text-lg font-bold text-foreground">Mis Chatbots</h2>
       <p className="text-xs text-muted-foreground">Selecciona un asistente para conversar</p>
     </div>
-
+    
     <div className="flex-1 overflow-y-auto p-2 space-y-2">
       {AVAILABLE_BOTS.map((bot) => {
         const isSelected = selectedId === bot.id;
-
+        
         return (
           <button
             key={bot.id}
             onClick={() => onSelect(bot.id, bot.name)}
             className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group border
-              ${isSelected
-                ? 'bg-[#00839B]/10 text-[#00839B] border-[#00839B]/20 shadow-sm'
+              ${isSelected 
+                ? 'bg-[#00839B]/10 text-[#00839B] border-[#00839B]/20 shadow-sm' 
                 : 'bg-transparent border-transparent hover:bg-muted/50 text-muted-foreground hover:text-foreground'
               }`}
           >
-            {/* Icono del Bot (SVG Manual) */}
+            {/* Icono (SVG) */}
             <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-90 group-hover:opacity-100'} ${bot.color}`}>
-              {/* ✅ REEMPLAZADO: SVG directo en lugar de MessageSquare */}
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
             </div>
-
-            {/* Info del Bot */}
+            
             <div className="flex-1 min-w-0">
               <div className={`font-medium truncate ${isSelected ? 'font-semibold' : ''}`}>
                 {bot.name}
@@ -78,11 +73,16 @@ const ChatbotsView = ({ onSelect, selectedId }: ChatbotsViewProps) => (
   </div>
 );
 
-// --- EL RESTO DEL ARCHIVO SIGUE IGUAL ---
 interface SidebarProps {
   channels: Channel[];
   selectedThreadId?: string;
+  // Mantenemos esto para los hilos normales
   onThreadSelect: (thread: Thread) => void;
+  // ✅ NUEVA PROP: Específica para seleccionar bots (sin Thread object)
+  onBotSelect?: (botId: string, botName: string) => void; 
+  // Prop para saber qué bot está seleccionado visualmente
+  selectedBotId?: string; 
+  
   onCreateChannel?: () => void;
   selectedView: 'channels' | 'search' | 'profile' | 'settings' | 'chatbots';
   onLogout: () => void;
@@ -96,6 +96,10 @@ export function Sidebar({
   channels,
   selectedThreadId,
   onThreadSelect,
+  // Recibimos las nuevas props
+  onBotSelect,
+  selectedBotId,
+  
   onCreateChannel,
   selectedView,
   onLogout,
@@ -109,9 +113,7 @@ export function Sidebar({
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   const handleCreateChannel = async () => {
     if (!channelName.trim()) {
@@ -189,36 +191,27 @@ export function Sidebar({
             </div>
           </>
         );
+      
+      // ... search, profile, settings quedan igual ...
       case 'search':
-        return (
-          <ChannelSearch
-            onChannelSelect={(channelId, channelName) => {
-              console.log('Canal seleccionado:', channelId, channelName);
-            }}
-            user={user}
-            onChannelJoined={onChannelJoined}
-          />
-        );
+         return <ChannelSearch onChannelSelect={() => {}} user={user} onChannelJoined={onChannelJoined} />;
+      case 'profile':
+         return <ProfileView user={user} />;
+      case 'settings':
+         return <SettingsView onLogout={onLogout} />;
 
       case 'chatbots':
         return (
           <ChatbotsView
+            // ✅ USO: Llamamos directamente a la función de bots
             onSelect={(id, name) => {
-              // Convertir a Thread object para chatbots
-              onThreadSelect({
-                thread_id: id,
-                thread_name: name,
-                thread_created_by: 'system', // Los bots son creados por el sistema
-              });
+              if (onBotSelect) onBotSelect(id, name);
             }}
-            selectedId={selectedThreadId}
+            // ✅ USO: Usamos el ID del bot, no del thread
+            selectedId={selectedBotId}
           />
         );
 
-      case 'profile':
-        return <ProfileView user={user} />;
-      case 'settings':
-        return <SettingsView onLogout={onLogout} />;
       default:
         return null;
     }
