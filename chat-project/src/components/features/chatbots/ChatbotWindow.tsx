@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
   id: string;
@@ -17,7 +19,6 @@ interface ChatbotWindowProps {
   botName: string;
 }
 
-// URL Base de tu Ingress (apuntando a tu Gateway Node.js)
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function ChatbotWindow({ botId, botName }: ChatbotWindowProps) {
@@ -26,14 +27,14 @@ export function ChatbotWindow({ botId, botName }: ChatbotWindowProps) {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // ✅ SOLUCIÓN 1: Limpiar el chat cuando cambiamos de Bot
+  // Limpiar chat al cambiar de bot
   useEffect(() => {
-    setMessages([]); // Resetea los mensajes
-    setInputValue(''); // Limpia el input por si acaso
+    setMessages([]); 
+    setInputValue(''); 
     setIsLoading(false);
-  }, [botId]); // Se ejecuta cada vez que cambia el ID del bot
+  }, [botId]);
 
-  // Scroll automático
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -52,44 +53,33 @@ export function ChatbotWindow({ botId, botName }: ChatbotWindowProps) {
       timestamp: new Date(),
     };
     
-    // Agregamos mensaje usuario
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
     try {
-      // ✅ SOLUCIÓN 2: Rutas exactas según tu API Gateway (services.js)
       let apiPath = '';
-      
       if (botId === 'bot-wikipedia') {
-        // Ruta configurada en tu Gateway
         apiPath = '/api/chatbot/wikipedia/chat-wikipedia';
       } else if (botId === 'bot-programacion') {
-        // Ruta configurada en tu Gateway
-        // NOTA: Verifica si en tu services.js dice 'programming' o 'programacion'
         apiPath = '/api/chatbot/programming/chat'; 
       } else {
-        throw new Error('Bot no configurado correctamente');
+        throw new Error('Bot no configurado');
       }
 
       const fullUrl = `${BASE_URL}${apiPath}`;
-      console.log(`[Chatbot] Enviando a: ${fullUrl}`); // Debug para ver la URL
-
+      
       const response = await fetch(fullUrl, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userText }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error(`Error ${response.status}`);
 
       const data = await response.json();
-
-      // Procesar respuesta
-      const botResponse = data.message || JSON.stringify(data);
+      
+      // IMPORTANTE: Aseguramos que sea un string limpio
+      const botResponse = typeof data.reply === 'string' ? data.reply : (data.message || JSON.stringify(data));
 
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -104,7 +94,7 @@ export function ChatbotWindow({ botId, botName }: ChatbotWindowProps) {
       setMessages((prev) => [...prev, {
         id: Date.now().toString(),
         role: 'bot',
-        content: 'Lo siento, no pude conectar con el servidor del chatbot.',
+        content: 'Lo siento, ocurrió un error de conexión.',
         timestamp: new Date()
       }]);
     } finally {
@@ -140,35 +130,83 @@ export function ChatbotWindow({ botId, botName }: ChatbotWindowProps) {
         
         {messages.map((msg) => (
           <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm
+            {/* Avatar */}
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm h-fit mt-1
               ${msg.role === 'user' ? 'bg-gray-800 text-white' : 
                 botId === 'bot-wikipedia' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'}`}>
               {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
             </div>
-            <div className={`max-w-[80%] p-4 rounded-2xl text-sm shadow-sm leading-relaxed
+
+            {/* Burbuja de Mensaje */}
+            <div className={`max-w-[85%] p-4 rounded-2xl text-sm shadow-sm overflow-hidden
               ${msg.role === 'user' 
                 ? 'bg-gray-800 text-white rounded-tr-none' 
                 : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'
               }`}>
-              {msg.content}
+              
+              {msg.role === 'bot' ? (
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    // Títulos (### en tu ejemplo es h3)
+                    h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-4 mb-2 text-gray-900" {...props as any} />,
+                    h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-4 mb-2 text-gray-900 border-b pb-1" {...props as any} />,
+                    h3: ({node, ...props}) => <h3 className="text-base font-bold mt-4 mb-2 text-gray-800" {...props as any} />,
+                    
+                    // Párrafos (clave para espaciado)
+                    p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed text-gray-700" {...props as any} />,
+                    
+                    // Listas
+                    ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-3 space-y-1 text-gray-700" {...props as any} />,
+                    ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-3 space-y-1 text-gray-700" {...props as any} />,
+                    li: ({node, ...props}) => <li className="pl-1" {...props as any} />,
+                    
+                    // Código en línea (`variable`)
+                    code: ({node, ...props}) => (
+                      <code className="bg-gray-100 text-pink-600 px-1.5 py-0.5 rounded font-mono text-xs font-medium border border-gray-200" {...props as any} />
+                    ),
+                    
+                    // Bloques de código (```python ... ```)
+                    pre: ({node, ...props}) => (
+                      <div className="bg-slate-900 text-slate-50 p-4 rounded-lg my-4 overflow-x-auto shadow-inner">
+                        <pre className="font-mono text-xs leading-5" {...props as any} />
+                      </div>
+                    ),
+                    
+                    // Enlaces
+                    a: ({node, ...props}) => (
+                      <a className="text-blue-600 hover:underline break-all font-medium" target="_blank" rel="noopener noreferrer" {...props as any} />
+                    ),
+                    
+                    // Citas
+                    blockquote: ({node, ...props}) => (
+                      <blockquote className="border-l-4 border-blue-200 pl-4 py-1 my-3 text-gray-500 italic bg-gray-50 rounded-r" {...props as any} />
+                    ),
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+              ) : (
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+              )}
             </div>
           </div>
         ))}
 
         {isLoading && (
           <div className="flex gap-3">
-             <div className="w-8 h-8 rounded-full bg-white border flex items-center justify-center text-gray-400">
+             <div className="w-8 h-8 rounded-full bg-white border flex items-center justify-center text-gray-400 mt-1">
                 <Loader2 size={16} className="animate-spin" />
              </div>
-             <div className="bg-white border border-gray-200 p-4 rounded-2xl rounded-tl-none flex items-center gap-2 text-sm text-gray-500">
-               <span>Escribiendo...</span>
+             <div className="bg-white border border-gray-200 p-4 rounded-2xl rounded-tl-none text-sm text-gray-500">
+               <span className="animate-pulse">Escribiendo...</span>
              </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
+      {/* Input Area */}
       <div className="p-4 border-t bg-white">
         <form onSubmit={handleSendMessage} className="flex gap-3 max-w-4xl mx-auto">
           <Input
